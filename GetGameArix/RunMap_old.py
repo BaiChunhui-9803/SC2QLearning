@@ -19,21 +19,28 @@ import math
 import random
 from collections import deque, namedtuple
 from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib import cm
 from PIL import Image
 import seaborn as sns
 import ssim2 as ssim
+from operator import itemgetter
+import os
 
 import statistics
 
 # 解决中文标题问题
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
-matplotlib.use("Agg")
+# matplotlib.use("Agg")
 
 _MAP_RESOLUTION = 128
 # _MY_UNIT_INFLUENCE = [16, 9, 4, 1]
 _MY_UNIT_INFLUENCE = [25]
 _ENEMY_UNIT_INFLUENCE = [-16, -9, -4, -1]
+_BOUNDARY_WIDTH = 2
+_MAX_INFLUENCE = 25
+_MIN_INFLUENCE = -16 * 4
+
 # _MY_UNIT_TYPE = 105
 # _MY_UNIT_TYPE_ARG = units.Zerg.Zergling
 _MY_UNIT_TYPE = 48
@@ -42,7 +49,7 @@ _ENEMY_UNIT_TYPE = 105
 _ENEMY_UNIT_TYPE_ARG = units.Zerg.Zergling
 # _ENEMY_UNIT_TYPE = 48
 # _ENEMY_UNIT_TYPE_ARG = units.Terran.Marine
-_BOUNDARY_WIDTH = 2
+
 
 _STEP = 20
 _STEP_MUL = 20
@@ -115,18 +122,34 @@ def merge_units_csv(file1, file2):
     # print(pd.read_csv("units_dataframe.csv"))
 
 
-def array_to_pil_img(arr: np.ndarray):
+def save_img(img):
+    file_path = "./../SSIM/img/"
+    files = os.listdir(file_path)
+    file_num = len(files)
+    img.save(f"{file_path}{file_num}.png")
+
+
+def array_to_pil_img(arr: np.ndarray, check_flag=False):
     # plt.figure()
-    p1 = sns.heatmap(arr, cmap="coolwarm", vmin=-25, vmax=25, annot=False, cbar=False, square=True,
-                     xticklabels=False, yticklabels=False, linewidth=.5)
-    # s1 = p1.get_figure()
-    canvas = FigureCanvasAgg(plt.gcf())
-    canvas.draw()
-    w, h = canvas.get_width_height()
-    buf = np.frombuffer(canvas.tostring_argb(), dtype=np.uint8)
-    buf.shape = (w, h, 4)
-    buf = np.roll(buf, 3, axis=2)
-    img = Image.frombytes("RGB", (w, h), buf.tobytes())
+    # print(arr.min(), arr.max())
+    norm = mcolors.TwoSlopeNorm(vmin=_MIN_INFLUENCE, vmax=_MAX_INFLUENCE, vcenter=0.0)
+    p1 = sns.heatmap(arr, cmap="RdBu", norm=norm,
+                     annot=False, cbar=False, square=True, xticklabels=False, yticklabels=False)
+    # p1 = sns.heatmap(arr, cmap="coolwarm", vmin=-25, vmax=25, annot=False, cbar=False, square=True,
+                     # xticklabels=False, yticklabels=False, linewidth=.5)
+    s1 = p1.get_figure()
+    img = Image.frombytes('RGB', s1.canvas.get_width_height(), s1.canvas.tostring_rgb())
+    if check_flag:
+        save_img(img)
+    # img.show()
+    # canvas = FigureCanvasAgg(plt.gcf())
+    # canvas.draw()
+    # w, h = canvas.get_width_height()
+    # buf = np.frombuffer(canvas.tostring_argb(), dtype=np.uint8)
+    # buf.shape = (w, h, 4)
+    # buf = np.roll(buf, 3, axis=2)
+    # img = Image.frombytes("RGB", (w, h), buf.tobytes())
+    # print('img', type(img))
     # plt.show()
     return ssim.make_regalur_image(img)
 
@@ -142,7 +165,14 @@ def mtx_similar(arr1: np.ndarray, arr2: np.ndarray) -> float:
     # print('ssim: HeatMap1 & HeatMap2',
     # ssim.make_regalur_image(array_to_pil_img(dfData1), dfData2))
     # matplotlib.pyplot.close()
-    return ssim.calc_similar(array_to_pil_img(arr1), array_to_pil_img(arr2))
+    img1 = array_to_pil_img(arr1)
+    img2 = array_to_pil_img(arr2)
+    similar = ssim.calc_similar(img1, img2)
+    # if similar < 0.95:
+    #     save_img(img1)
+    #     save_img(img2)
+    # print(similar)
+    return similar
 
 
 class QLearningTable:
@@ -156,8 +186,8 @@ class QLearningTable:
     def choose_action(self, observation, e_greedy=0.9):
         # print(observation)
         state_index = self.check_state_exist(observation)
-        print(state_index)
-        print(self.q_table)
+        # print(state_index)
+        # print(self.q_table)
         if np.random.uniform() < e_greedy:
             state_action = self.q_table.loc[str(state_index), :]
             action = np.random.choice(
@@ -167,15 +197,8 @@ class QLearningTable:
         return action
 
     def learn(self, s, a, r, s_):
-        # print(type(s_), s_)
-        # print(self.q_table)
-        # print(s_)
         state_index = self.check_state_exist(s_)
         predict_state_index = self.check_state_exist(s)
-        print(state_index)
-        # print(state_index)
-        # print(state_index)
-        print(self.q_table)
         q_predict = self.q_table.loc[str(predict_state_index), a]
         if type(s_) != str:
             q_target = r + self.reward_decay * self.q_table.loc[str(state_index), :].max()
@@ -188,18 +211,19 @@ class QLearningTable:
         # print(type(state), state)
         # print(self.q_table)
         if len(state_vec) == 0 or type(observation) == str:
-        # if state not in self.q_table.index:
-            state_vec.append((str(len(state_vec)), observation))
+            state_vec.append([str(len(state_vec)), observation, 0])
+            array_to_pil_img(observation, True)
             self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
                                                               index=self.q_table.columns,
                                                               # name=state).to_frame().T])
-                                                              name=str(len(state_vec) - 1)).to_frame().T])
+                                                              name=str(len(state_vec) - 1)
+                                                              ).to_frame().T])
             return len(state_vec) - 1
         # 目前不考虑相似
         else:
             max_similar = 0
             max_similar_index = 0
-            for state_index, state_item in state_vec:
+            for state_index, state_item, state_cnt in state_vec:
                 # print(state_item, state_index)
                 # print('observation', observation)
                 if type(state_item) != str:
@@ -211,15 +235,18 @@ class QLearningTable:
                         # print('now_obs', observation)
                         # print('exist_obs', state_vec[int(state_index)])
                         # print('similar_obs', state_vec[state_index])
+                        state_vec[int(state_index)][2] += 1
                         return state_index
                     if item_similar > max_similar:
                         max_similar = item_similar
                         max_similar_index = state_index
             if max_similar < 0.95:
-                state_vec.append((str(len(state_vec)), observation))
+                state_vec.append([str(len(state_vec)), observation, 0])
+                array_to_pil_img(observation, True)
                 self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
                                                                   index=self.q_table.columns,
-                                                                  name=str(len(state_vec) - 1)).to_frame().T])
+                                                                  name=str(len(state_vec) - 1)
+                                                                  ).to_frame().T])
                 return len(state_vec) - 1
             return max_similar_index
         # if state not in self.q_table.index:
@@ -328,8 +355,9 @@ class Agent(base_agent.BaseAgent):
 class SmartAgent(Agent):
     def draw_units(self):
         unit_my_list, unit_enemy_list = self.get_units_list("data_for_render/units_dataframe.csv")
-        print(unit_my_list, unit_enemy_list)
+        # print(unit_my_list, unit_enemy_list)
         influence_map = self.get_influence_map(unit_my_list, unit_enemy_list)
+        print('draw_units', influence_map.shape)
         top, bottom, left, right = self.get_map_boundary(influence_map, _BOUNDARY_WIDTH)
         # 生成目标点
         target_gp = self.analyze_influence_map(influence_map)
@@ -339,7 +367,7 @@ class SmartAgent(Agent):
         d = influence_map.T[left:right, top:bottom]
 
         # fig.tight_layout()
-        norm = mcolors.TwoSlopeNorm(vmin=d.min(), vmax=d.max(), vcenter=0)
+        norm = mcolors.TwoSlopeNorm(vmin=_MIN_INFLUENCE, vmax=_MAX_INFLUENCE, vcenter=0)
         plt.imshow(d, cmap=plt.cm.RdBu, norm=norm)
         for x, value_zip in enumerate(d):
             value: int
@@ -351,6 +379,18 @@ class SmartAgent(Agent):
         plt.colorbar()
         plt.show()
         return
+
+
+    def draw_influence_map(self, influence_map):
+        plt.clf()
+        # print('draw_influence_map', influence_map.shape)
+        # fig.tight_layout()
+        norm = mcolors.TwoSlopeNorm(vmin=_MIN_INFLUENCE, vmax=_MAX_INFLUENCE, vcenter=0)
+        plt.imshow(influence_map, cmap=plt.cm.RdBu, norm=norm)
+        plt.colorbar()
+        plt.show()
+        return
+
 
     def map_to_grid(self, x, y):
         i, j = int(x), int(_MAP_RESOLUTION - y)
@@ -753,11 +793,15 @@ class SmartAgent(Agent):
                               reward_cumulative,
                               'terminal' if obs.last() else state)
 
+        # for x in state_vec:
+            # self.draw_influence_map(x[1])
+        print([(x[0], x[2]) for x in state_vec])
         # print(self.qtable.q_table)
         # print('observation', dir(obs.observation))
         # print(obs.score_by_category, obs.score_by_vital, obs.score_cumulative)
         self.previous_state = state
         self.previous_action = action
+        # print(state_vec)
         # print(obs.observation['score_cumulative'])
 
         if obs.last():
