@@ -47,7 +47,7 @@ _BOUNDARY_WIDTH = 2
 _STEP = 20
 _STEP_MUL = 20
 
-# state_vec = []
+state_vec = []
 
 
 def print_object_attribute(mp):
@@ -155,11 +155,11 @@ class QLearningTable:
 
     def choose_action(self, observation, e_greedy=0.9):
         # print(observation)
-        self.check_state_exist(observation)
-        # print(state_index)
-        # print(self.q_table)
+        state_index = self.check_state_exist(observation)
+        print(state_index)
+        print(self.q_table)
         if np.random.uniform() < e_greedy:
-            state_action = self.q_table.loc[observation, :]
+            state_action = self.q_table.loc[str(state_index), :]
             action = np.random.choice(
                 state_action[state_action == np.max(state_action)].index)
         else:
@@ -170,56 +170,58 @@ class QLearningTable:
         # print(type(s_), s_)
         # print(self.q_table)
         # print(s_)
-        self.check_state_exist(s_)
+        state_index = self.check_state_exist(s_)
+        predict_state_index = self.check_state_exist(s)
+        print(state_index)
         # print(state_index)
         # print(state_index)
-        # print(self.q_table)
-        q_predict = self.q_table.loc[s, a]
-        if s_ != 'terminal':
-            q_target = r + self.reward_decay * self.q_table.loc[s_, :].max()
+        print(self.q_table)
+        q_predict = self.q_table.loc[str(predict_state_index), a]
+        if type(s_) != str:
+            q_target = r + self.reward_decay * self.q_table.loc[str(state_index), :].max()
         else:
             q_target = r
-        self.q_table.loc[s, a] += self.learning_rate * (q_target - q_predict)
+        self.q_table.loc[str(predict_state_index), a] += self.learning_rate * (q_target - q_predict)
 
-    def check_state_exist(self, state):
+    def check_state_exist(self, observation, check=False):
         # print(len(state_vec))
         # print(type(state), state)
-        # print(self.q_table.index)
-        # if len(state_vec) == 0 or type(observation) == str:
-        if state not in self.q_table.index:
-            # state_vec.append((str(len(state_vec)), observation))
+        # print(self.q_table)
+        if len(state_vec) == 0 or type(observation) == str:
+        # if state not in self.q_table.index:
+            state_vec.append((str(len(state_vec)), observation))
             self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
                                                               index=self.q_table.columns,
-                                                              name=state).to_frame().T])
-                                                              # name=str(len(state_vec) - 1)).to_frame().T])
-            # return len(state_vec) - 1
+                                                              # name=state).to_frame().T])
+                                                              name=str(len(state_vec) - 1)).to_frame().T])
+            return len(state_vec) - 1
         # 目前不考虑相似
-        # else:
-        #     max_similar = 0
-        #     max_similar_index = 0
-        #     for state_index, state_item in state_vec:
-        #         # print(state_item, state_index)
-        #         # print('observation', observation)
-        #         if type(state_item) != str:
-        #             item_similar = mtx_similar(np.matrix(observation, dtype="float"),
-        #                                        np.matrix(state_item, dtype="float"))
-        #             if item_similar >= 0.95:
-        #                 # print('observation', observation)
-        #                 # print(item_similar, state_vec[int(state_index)])
-        #                 # print('now_obs', observation)
-        #                 # print('exist_obs', state_vec[int(state_index)])
-        #                 # print('similar_obs', state_vec[state_index])
-        #                 return state_index
-        #             if item_similar > max_similar:
-        #                 max_similar = item_similar
-        #                 max_similar_index = state_index
-        #     if max_similar < 0.95:
-        #         state_vec.append((str(len(state_vec)), observation))
-        #         self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
-        #                                                           index=self.q_table.columns,
-        #                                                           name=str(len(state_vec) - 1)).to_frame().T])
-        #         return len(state_vec) - 1
-        #     return max_similar_index
+        else:
+            max_similar = 0
+            max_similar_index = 0
+            for state_index, state_item in state_vec:
+                # print(state_item, state_index)
+                # print('observation', observation)
+                if type(state_item) != str:
+                    item_similar = mtx_similar(np.matrix(observation, dtype="float"),
+                                               np.matrix(state_item, dtype="float"))
+                    if item_similar >= 0.95:
+                        # print('observation', observation)
+                        # print(item_similar, state_vec[int(state_index)])
+                        # print('now_obs', observation)
+                        # print('exist_obs', state_vec[int(state_index)])
+                        # print('similar_obs', state_vec[state_index])
+                        return state_index
+                    if item_similar > max_similar:
+                        max_similar = item_similar
+                        max_similar_index = state_index
+            if max_similar < 0.95:
+                state_vec.append((str(len(state_vec)), observation))
+                self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
+                                                                  index=self.q_table.columns,
+                                                                  name=str(len(state_vec) - 1)).to_frame().T])
+                return len(state_vec) - 1
+            return max_similar_index
         # if state not in self.q_table.index:
         #     self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
         #                                                       index=self.q_table.columns,
@@ -669,9 +671,9 @@ class SmartAgent(Agent):
         unit_my_list = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
         unit_enemy_list = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
         influence_map = self.get_influence_map(unit_my_list, unit_enemy_list)
-        return (len(unit_my_list), len(unit_enemy_list))
+        # return (len(unit_my_list), len(unit_enemy_list))
         # print(influence_map)
-        # top, bottom, left, right = self.get_map_boundary(influence_map, _BOUNDARY_WIDTH)
+        top, bottom, left, right = self.get_map_boundary(influence_map, _BOUNDARY_WIDTH)
         # 生成目标点
         target_gp = self.analyze_influence_map(influence_map)
         target_mp = self.grid_to_map(target_gp[0], target_gp[1])
@@ -685,16 +687,17 @@ class SmartAgent(Agent):
         # else:
         #     max_similar = 0
         #     max_index = 0
-        #     for state_item, state_index in state_vec:
+        #     for state_index, state_item in state_vec:
+        #         # print(state_item)
         #         item_similar = mtx_similar(np.matrix(window_map, dtype="float"),
-        #                                    np.matrix(state_item[1], dtype="float"))
+        #                                    np.matrix(state_item, dtype="float"))
         #         if item_similar > max_similar:
         #             max_similar = item_similar
         #             max_index = state_index
         #     if max_similar < 0.95:
         #         state_vec.append((str(len(state_vec)), window_map))
         #         return str(len(state_vec) - 1)
-        # return window_map
+        return window_map
 
     def step(self, obs):
         super(SmartAgent, self).step(obs)
@@ -735,7 +738,7 @@ class SmartAgent(Agent):
             # print(self.qtable.q_table)
             # print(self.qtable.q_table)
 
-        state = str(self.get_state(obs))
+        state = self.get_state(obs)
         # state = len(state_vec)
         action = self.qtable.choose_action(state)
         reward_cumulative = (obs.observation['score_cumulative'][0] +
