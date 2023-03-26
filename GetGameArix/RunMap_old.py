@@ -129,6 +129,13 @@ def save_img(img):
     img.save(f"{file_path}{file_num}.png")
 
 
+def save_arr(arr):
+    file_path = "./../SSIM/arr/"
+    files = os.listdir(file_path)
+    file_num = len(files)
+    np.savetxt(f"{file_path}{file_num}.txt", arr, fmt="%.2f")
+
+
 def array_to_pil_img(arr: np.ndarray, check_flag=False):
     # plt.figure()
     # print(arr.min(), arr.max())
@@ -141,6 +148,7 @@ def array_to_pil_img(arr: np.ndarray, check_flag=False):
     img = Image.frombytes('RGB', s1.canvas.get_width_height(), s1.canvas.tostring_rgb())
     if check_flag:
         save_img(img)
+        save_arr(arr)
     # img.show()
     # canvas = FigureCanvasAgg(plt.gcf())
     # canvas.draw()
@@ -169,8 +177,8 @@ def mtx_similar(arr1: np.ndarray, arr2: np.ndarray) -> float:
     img2 = array_to_pil_img(arr2)
     similar = ssim.calc_similar(img1, img2)
     # if similar < 0.95:
-    #     save_img(img1)
-    #     save_img(img2)
+    # save_img(img1)
+    # save_img(img2)
     # print(similar)
     return similar
 
