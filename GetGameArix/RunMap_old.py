@@ -55,6 +55,7 @@ _STEP = 20
 _STEP_MUL = 20
 
 state_vec = []
+state_img_vec = []
 
 
 def print_object_attribute(mp):
@@ -125,44 +126,31 @@ def merge_units_csv(file1, file2):
 def save_img(img):
     file_path = "./../SSIM/img/"
     files = os.listdir(file_path)
-    file_num = len(files)
+    file_num = str(len(files)).zfill(3)
     img.save(f"{file_path}{file_num}.png")
 
 
 def save_arr(arr):
     file_path = "./../SSIM/arr/"
     files = os.listdir(file_path)
-    file_num = len(files)
+    file_num = str(len(files)).zfill(3)
     np.savetxt(f"{file_path}{file_num}.txt", arr, fmt="%.2f")
 
 
 def array_to_pil_img(arr: np.ndarray, check_flag=False):
-    # plt.figure()
-    # print(arr.min(), arr.max())
     norm = mcolors.TwoSlopeNorm(vmin=_MIN_INFLUENCE, vmax=_MAX_INFLUENCE, vcenter=0.0)
     p1 = sns.heatmap(arr, cmap="RdBu", norm=norm,
                      annot=False, cbar=False, square=True, xticklabels=False, yticklabels=False)
-    # p1 = sns.heatmap(arr, cmap="coolwarm", vmin=-25, vmax=25, annot=False, cbar=False, square=True,
-                     # xticklabels=False, yticklabels=False, linewidth=.5)
     s1 = p1.get_figure()
     img = Image.frombytes('RGB', s1.canvas.get_width_height(), s1.canvas.tostring_rgb())
     if check_flag:
         save_img(img)
         save_arr(arr)
     # img.show()
-    # canvas = FigureCanvasAgg(plt.gcf())
-    # canvas.draw()
-    # w, h = canvas.get_width_height()
-    # buf = np.frombuffer(canvas.tostring_argb(), dtype=np.uint8)
-    # buf.shape = (w, h, 4)
-    # buf = np.roll(buf, 3, axis=2)
-    # img = Image.frombytes("RGB", (w, h), buf.tobytes())
-    # print('img', type(img))
-    # plt.show()
     return ssim.make_regalur_image(img)
 
 
-def mtx_similar(arr1: np.ndarray, arr2: np.ndarray) -> float:
+def mtx_similar(arr1: np.ndarray, arr2_index: int) -> float:
     '''
     计算矩阵相似度的一种方法。将矩阵展平成向量，计算向量的乘积除以模长。
     :param arr1:矩阵1
@@ -174,8 +162,9 @@ def mtx_similar(arr1: np.ndarray, arr2: np.ndarray) -> float:
     # ssim.make_regalur_image(array_to_pil_img(dfData1), dfData2))
     # matplotlib.pyplot.close()
     img1 = array_to_pil_img(arr1)
-    img2 = array_to_pil_img(arr2)
+    img2 = state_img_vec[arr2_index]
     similar = ssim.calc_similar(img1, img2)
+    # print(similar)
     # if similar < 0.95:
     # save_img(img1)
     # save_img(img2)
@@ -215,34 +204,30 @@ class QLearningTable:
         self.q_table.loc[str(predict_state_index), a] += self.learning_rate * (q_target - q_predict)
 
     def check_state_exist(self, observation, check=False):
-        # print(len(state_vec))
-        # print(type(state), state)
-        # print(self.q_table)
-        if len(state_vec) == 0 or type(observation) == str:
+        if len(state_vec) == 0:
             state_vec.append([str(len(state_vec)), observation, 0])
-            array_to_pil_img(observation, True)
+            state_img_vec.append(array_to_pil_img(observation, True))
+            # array_to_pil_img(observation, True)
             self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
                                                               index=self.q_table.columns,
                                                               # name=state).to_frame().T])
                                                               name=str(len(state_vec) - 1)
                                                               ).to_frame().T])
             return len(state_vec) - 1
-        # 目前不考虑相似
+        elif type(observation) == str:
+            self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
+                                                              index=self.q_table.columns,
+                                                              # name=state).to_frame().T])
+                                                              name=str(len(state_vec) - 1)
+                                                              ).to_frame().T])
         else:
             max_similar = 0
             max_similar_index = 0
             for state_index, state_item, state_cnt in state_vec:
-                # print(state_item, state_index)
-                # print('observation', observation)
                 if type(state_item) != str:
                     item_similar = mtx_similar(np.matrix(observation, dtype="float"),
-                                               np.matrix(state_item, dtype="float"))
+                                               int(state_index))
                     if item_similar >= 0.95:
-                        # print('observation', observation)
-                        # print(item_similar, state_vec[int(state_index)])
-                        # print('now_obs', observation)
-                        # print('exist_obs', state_vec[int(state_index)])
-                        # print('similar_obs', state_vec[state_index])
                         state_vec[int(state_index)][2] += 1
                         return state_index
                     if item_similar > max_similar:
@@ -250,17 +235,14 @@ class QLearningTable:
                         max_similar_index = state_index
             if max_similar < 0.95:
                 state_vec.append([str(len(state_vec)), observation, 0])
-                array_to_pil_img(observation, True)
+                state_img_vec.append(array_to_pil_img(observation, True))
+                # array_to_pil_img(observation, True)
                 self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
                                                                   index=self.q_table.columns,
                                                                   name=str(len(state_vec) - 1)
                                                                   ).to_frame().T])
                 return len(state_vec) - 1
             return max_similar_index
-        # if state not in self.q_table.index:
-        #     self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
-        #                                                       index=self.q_table.columns,
-        #                                                       name=state).to_frame().T])
         # 原始代码如下：append被弃用，改为pd.concat
         # self.q_table = self.q_table.append(pd.Series([0] * len(self.actions),
         #                                              index=self.q_table.columns,
@@ -728,23 +710,6 @@ class SmartAgent(Agent):
         # self.ripple(influence_map, 0, (target_gp[0], target_gp[1]), 'Target')
         # 窗口取值
         window_map = influence_map.T[left:right, top:bottom]
-        # print(window_map)
-        # if len(state_vec) == 0:
-        #     state_vec.append((str(len(state_vec)), window_map))
-        #     return str(len(state_vec) - 1)
-        # else:
-        #     max_similar = 0
-        #     max_index = 0
-        #     for state_index, state_item in state_vec:
-        #         # print(state_item)
-        #         item_similar = mtx_similar(np.matrix(window_map, dtype="float"),
-        #                                    np.matrix(state_item, dtype="float"))
-        #         if item_similar > max_similar:
-        #             max_similar = item_similar
-        #             max_index = state_index
-        #     if max_similar < 0.95:
-        #         state_vec.append((str(len(state_vec)), window_map))
-        #         return str(len(state_vec) - 1)
         return window_map
 
     def step(self, obs):
@@ -804,6 +769,7 @@ class SmartAgent(Agent):
         # for x in state_vec:
             # self.draw_influence_map(x[1])
         print([(x[0], x[2]) for x in state_vec])
+        # print(state_img_vec)
         # print(self.qtable.q_table)
         # print('observation', dir(obs.observation))
         # print(obs.score_by_category, obs.score_by_vital, obs.score_cumulative)

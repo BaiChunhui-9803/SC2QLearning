@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 
 
@@ -25,58 +26,60 @@ def array_to_pil_img(arr: np.ndarray, check_flag=False):
     s1 = p1.get_figure()
     img = Image.frombytes('RGB', s1.canvas.get_width_height(), s1.canvas.tostring_rgb())
     # img.show()
-    # canvas = FigureCanvasAgg(plt.gcf())
-    # canvas.draw()
-    # w, h = canvas.get_width_height()
-    # buf = np.frombuffer(canvas.tostring_argb(), dtype=np.uint8)
-    # buf.shape = (w, h, 4)
-    # buf = np.roll(buf, 3, axis=2)
-    # img = Image.frombytes("RGB", (w, h), buf.tobytes())
-    # print('img', type(img))
-    # plt.show()
     return ssim.make_regalur_image(img)
 
 
-def calculate_similar():
-    file_path = "img/"
-    files = os.listdir(file_path)
-    print(files)
-    file_num = len(files)
-    mat = np.zeros((file_num, file_num))
-    for i in range(file_num):
-        for j in range(file_num):
-            img_left, img_right = Image.open(f"{file_path}{files[i]}"), Image.open(f"{file_path}{files[j]}")
-            img_left.save("100.png")
-            mat[i][j] = ssim.calc_similar(img_left, img_right)
-            # print(ssim.calc_similar(img_left, img_right))
-    print(mat)
-
-
-def calculate_similar_from_arr():
-    file_path = "arr/"
-    files = os.listdir(file_path)
-    print(files)
-    file_num = len(files)
-    mat = np.zeros((file_num, file_num))
-    for i in range(file_num):
-        for j in range(file_num):
-            arr_left = np.loadtxt(f"{file_path}{files[i]}", dtype=np.float32)
-            arr_right = np.loadtxt(f"{file_path}{files[j]}", dtype=np.float32)
-            # img_left, img_right = Image.open(f"{file_path}{files[i]}"), Image.open(f"{file_path}{files[j]}")
-            # img_left.save("100.png")
-            # print(arr_left)
-            mat[i][j] = ssim.calc_similar(array_to_pil_img(arr_left), array_to_pil_img(arr_right))
-            # print(ssim.calc_similar(img_left, img_right))
-        print(i, j)
-    dataDf = pd.DataFrame(mat)
-    p1 = sns.heatmap(dataDf, square=True, linewidths=0.3,
-                     cmap='RdBu_r', annot=True, xticklabels=1, yticklabels=1)
+def calculate_similar_from_arr(arr_list, img_list):
+    for i, element in enumerate(img_list):
+        for j in range(i + 1):
+            arr_left = img_list[i]
+            arr_right = img_list[j]
+            mat[i][j] = ssim.calc_similar(arr_left, arr_right)
+        print(i)
+    data = pd.DataFrame(mat)
+    colors = ['white', 'white', 'lightskyblue', 'darkblue', 'white', 'pink', 'indianred', 'crimson']
+    nodes = [0, 0.1, 0.5, 0.8, 0.8, 0.8, 0.95, 1]
+    cmap1 = mcolors.LinearSegmentedColormap.from_list(
+        'cmap1', list(zip(nodes, colors))
+    )
+    sns.set(font_scale=1.25)
+    p1 = sns.heatmap(data,
+                     square=True,
+                     # linewidths=0.003,
+                     annot=True,
+                     fmt='.2f',
+                     annot_kws={'size': 10},
+                     vmin=0, center=0.5, vmax=1,
+                     cmap=cmap1,
+                     xticklabels=5,
+                     yticklabels=5)
     s1 = p1.get_figure()
     img = Image.frombytes('RGB', s1.canvas.get_width_height(), s1.canvas.tostring_rgb())
-    img.save("heatmap_22.png")
+    img.save("heatmap.png")
     print(mat)
 
 
-# calculate_similar()
+def create_arr_list(file_list):
+    file_arr_list = [0 for index in file_list]
+    for idx, element in enumerate(file_list):
+        # print(element)
+        file_arr_list[idx] = np.loadtxt(f"{file_path}{element}", dtype=np.float32)
+    return file_arr_list
 
-calculate_similar_from_arr()
+
+def create_img_list(file_list):
+    file_img_list = [0 for index in file_list]
+    for idx, element in enumerate(file_list):
+        # print(element)
+        file_img_list[idx] = array_to_pil_img(element)
+    return file_img_list
+
+
+file_path = "arr/"
+files_list = os.listdir(file_path)
+print(files_list)
+files_arr_list = create_arr_list(files_list)
+files_img_list = create_img_list(files_arr_list)
+mat = np.zeros((len(files_list), len(files_list)))
+# print(files_list)
+calculate_similar_from_arr(files_list, files_img_list)
