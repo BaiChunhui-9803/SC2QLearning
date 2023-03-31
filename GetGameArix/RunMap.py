@@ -21,7 +21,7 @@ from collections import deque, namedtuple
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from PIL import Image
 import seaborn as sns
-import ssim2 as ssim
+import similar_histogram as ssim
 
 import statistics
 
@@ -46,6 +46,9 @@ _BOUNDARY_WIDTH = 2
 
 _STEP = 20
 _STEP_MUL = 20
+
+_MAX_INFLUENCE = 25
+_MIN_INFLUENCE = -16 * 4
 
 # state_vec = []
 
@@ -143,6 +146,33 @@ def mtx_similar(arr1: np.ndarray, arr2: np.ndarray) -> float:
     # ssim.make_regalur_image(array_to_pil_img(dfData1), dfData2))
     # matplotlib.pyplot.close()
     return ssim.calc_similar(array_to_pil_img(arr1), array_to_pil_img(arr2))
+
+
+def save_img(img):
+    file_path = "./../SSIM/im_img/"
+    files = os.listdir(file_path)
+    file_num = str(len(files)).zfill(3)
+    img.save(f"{file_path}{file_num}.png")
+
+
+def save_arr(arr):
+    file_path = "./../SSIM/im_arr/"
+    files = os.listdir(file_path)
+    file_num = str(len(files)).zfill(3)
+    np.savetxt(f"{file_path}{file_num}.txt", arr, fmt="%.2f")
+
+
+def array_to_pil_img(arr: np.ndarray, check_flag=False):
+    norm = mcolors.TwoSlopeNorm(vmin=_MIN_INFLUENCE, vmax=_MAX_INFLUENCE, vcenter=0.0)
+    p1 = sns.heatmap(arr, cmap="RdBu", norm=norm,
+                     annot=False, cbar=False, square=True, xticklabels=False, yticklabels=False)
+    s1 = p1.get_figure()
+    img = Image.frombytes('RGB', s1.canvas.get_width_height(), s1.canvas.tostring_rgb())
+    if check_flag:
+        save_img(img)
+        save_arr(arr)
+    # img.show()
+    return ssim.make_regalur_image(img)
 
 
 class QLearningTable:
@@ -663,6 +693,25 @@ class SmartAgent(Agent):
         self.end_game_frames = _STEP * _STEP_MUL
         self.end_game_state = 'Dogfall'
 
+
+    def get_window_im(self, obs):
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        unit_my_list = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
+        unit_enemy_list = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
+        influence_map = self.get_influence_map(unit_my_list, unit_enemy_list)
+        # return (len(unit_my_list), len(unit_enemy_list))
+        # print(influence_map)
+        top, bottom, left, right = self.get_map_boundary(influence_map, _BOUNDARY_WIDTH)
+        # 生成目标点
+        target_gp = self.analyze_influence_map(influence_map)
+        target_mp = self.grid_to_map(target_gp[0], target_gp[1])
+        # self.ripple(influence_map, 0, (target_gp[0], target_gp[1]), 'Target')
+        # 窗口取值
+        window_map = influence_map.T[left:right, top:bottom]
+        return window_map
+
+
     def get_state(self, obs):
         my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
         enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
@@ -734,6 +783,9 @@ class SmartAgent(Agent):
             print('You loss.')
             # print(self.qtable.q_table)
             # print(self.qtable.q_table)
+
+        # array_to_pil_img(self.get_window_im(obs), True)
+        array_to_pil_img(self.get_window_im(obs), False)
 
         state = str(self.get_state(obs))
         # state = len(state_vec)

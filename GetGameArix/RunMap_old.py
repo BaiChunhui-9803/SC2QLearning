@@ -22,7 +22,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib import cm
 from PIL import Image
 import seaborn as sns
-import ssim2 as ssim
+import similar_histogram as ssim
 from operator import itemgetter
 import os
 
@@ -55,7 +55,7 @@ _STEP = 20
 _STEP_MUL = 20
 
 state_vec = []
-state_img_vec = []
+state_img_dict = {}
 
 
 def print_object_attribute(mp):
@@ -124,14 +124,14 @@ def merge_units_csv(file1, file2):
 
 
 def save_img(img):
-    file_path = "./../SSIM/img/"
+    file_path = "./../SSIM/im_img/"
     files = os.listdir(file_path)
     file_num = str(len(files)).zfill(3)
     img.save(f"{file_path}{file_num}.png")
 
 
 def save_arr(arr):
-    file_path = "./../SSIM/arr/"
+    file_path = "./../SSIM/im_arr/"
     files = os.listdir(file_path)
     file_num = str(len(files)).zfill(3)
     np.savetxt(f"{file_path}{file_num}.txt", arr, fmt="%.2f")
@@ -150,6 +150,11 @@ def array_to_pil_img(arr: np.ndarray, check_flag=False):
     return ssim.make_regalur_image(img)
 
 
+def find_list_item_by_name(name: str):
+    if name in state_img_dict:
+        return state_img_dict[name]
+
+
 def mtx_similar(arr1: np.ndarray, arr2_index: int) -> float:
     '''
     计算矩阵相似度的一种方法。将矩阵展平成向量，计算向量的乘积除以模长。
@@ -162,7 +167,8 @@ def mtx_similar(arr1: np.ndarray, arr2_index: int) -> float:
     # ssim.make_regalur_image(array_to_pil_img(dfData1), dfData2))
     # matplotlib.pyplot.close()
     img1 = array_to_pil_img(arr1)
-    img2 = state_img_vec[arr2_index]
+    # img2 = state_img_vec[arr2_index]
+    img2 = find_list_item_by_name(str(arr2_index))
     similar = ssim.calc_similar(img1, img2)
     # print(similar)
     # if similar < 0.95:
@@ -205,8 +211,10 @@ class QLearningTable:
 
     def check_state_exist(self, observation, check=False):
         if len(state_vec) == 0:
-            state_vec.append([str(len(state_vec)), observation, 0])
-            state_img_vec.append(array_to_pil_img(observation, True))
+            item_index = len(state_vec)
+            state_vec.append([str(item_index), observation, 0])
+            # state_img_vec.append((str(item_index), array_to_pil_img(observation, True)))
+            state_img_dict[str(item_index)] = array_to_pil_img(observation, True)
             # array_to_pil_img(observation, True)
             self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
                                                               index=self.q_table.columns,
@@ -214,12 +222,14 @@ class QLearningTable:
                                                               name=str(len(state_vec) - 1)
                                                               ).to_frame().T])
             return len(state_vec) - 1
-        elif type(observation) == str:
+        elif type(observation) == str and observation not in self.q_table.index:
             self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
                                                               index=self.q_table.columns,
                                                               # name=state).to_frame().T])
-                                                              name=str(len(state_vec) - 1)
+                                                              name='terminal'
                                                               ).to_frame().T])
+        elif type(observation) == str and observation in self.q_table.index:
+            return
         else:
             max_similar = 0
             max_similar_index = 0
@@ -234,8 +244,10 @@ class QLearningTable:
                         max_similar = item_similar
                         max_similar_index = state_index
             if max_similar < 0.95:
-                state_vec.append([str(len(state_vec)), observation, 0])
-                state_img_vec.append(array_to_pil_img(observation, True))
+                item_index = len(state_vec)
+                state_vec.append([str(item_index), observation, 0])
+                # state_img_vec.append((str(item_index), array_to_pil_img(observation, True)))
+                state_img_dict[str(item_index)] = array_to_pil_img(observation, True)
                 # array_to_pil_img(observation, True)
                 self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
                                                                   index=self.q_table.columns,
@@ -778,6 +790,7 @@ class SmartAgent(Agent):
         # print(state_vec)
         # print(obs.observation['score_cumulative'])
 
+        state_vec.sort(key=lambda x: x[2], reverse=True)
         if obs.last():
             # print('last.')
             # print(obs.reward)
@@ -796,6 +809,7 @@ class SmartAgent(Agent):
             self.qtable.q_table.to_csv('./data_for_transit/q_table.csv', header=True, index=True, sep=',')
             self.end_game_frames = _STEP * _STEP_MUL
             self.end_game_state = 'Dogfall'
+            # new_list = [sorted(state_vec, key=lambda x: x[2])]
         return getattr(self, action)(obs)
 
 

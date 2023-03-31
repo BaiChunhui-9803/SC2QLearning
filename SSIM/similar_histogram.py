@@ -1,3 +1,7 @@
+"""
+直方图
+"""
+
 from PIL import Image
 
 
@@ -12,5 +16,4 @@ def hist_similar(lh, rh):
 
 def calc_similar(li, ri):
     return hist_similar(li.histogram(), ri.histogram())
-
 

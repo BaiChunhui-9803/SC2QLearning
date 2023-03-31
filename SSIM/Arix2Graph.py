@@ -4,7 +4,7 @@ import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
 
-import ssim2 as ssim
+import similar_histogram as ssim
 from PIL import Image
 
 data1 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],

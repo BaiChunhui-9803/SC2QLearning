@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from PIL import Image
 import seaborn as sns
-import ssim2 as ssim
+import similar_histogram as ssim
 
 data1 = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
          [0, -1, -1, -1, 0, 0, 0, 0, 0, 0],
