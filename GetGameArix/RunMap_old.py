@@ -179,7 +179,7 @@ def mtx_similar(arr1: np.ndarray, arr2_index: int) -> float:
 
 
 class QLearningTable:
-    # def __init__(self, actions, learning_rate=0.01, reward_decay=0.9):
+    # def __init__(self, actions, learning_rate=0.LR80_RD10, reward_decay=0.9):
     def __init__(self, actions, learning_rate=0.5, reward_decay=0.9):
         self.actions = actions
         self.learning_rate = learning_rate
@@ -214,7 +214,7 @@ class QLearningTable:
             item_index = len(state_vec)
             state_vec.append([str(item_index), observation, 0])
             # state_img_vec.append((str(item_index), array_to_pil_img(observation, True)))
-            state_img_dict[str(item_index)] = array_to_pil_img(observation, True)
+            state_img_dict[str(item_index)] = array_to_pil_img(observation, False)
             # array_to_pil_img(observation, True)
             self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
                                                               index=self.q_table.columns,
@@ -247,7 +247,7 @@ class QLearningTable:
                 item_index = len(state_vec)
                 state_vec.append([str(item_index), observation, 0])
                 # state_img_vec.append((str(item_index), array_to_pil_img(observation, True)))
-                state_img_dict[str(item_index)] = array_to_pil_img(observation, True)
+                state_img_dict[str(item_index)] = array_to_pil_img(observation, False)
                 # array_to_pil_img(observation, True)
                 self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
                                                                   index=self.q_table.columns,

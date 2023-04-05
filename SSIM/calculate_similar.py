@@ -30,12 +30,26 @@ def array_to_pil_img(arr: np.ndarray, check_flag=False):
 
 
 def calculate_similar_from_arr(arr_list, img_list):
+    f_out = open("similar_pos.txt", "w", newline='')
     for i, element in enumerate(img_list):
         for j in range(i + 1):
             arr_left = img_list[i]
             arr_right = img_list[j]
             mat[i][j] = similar_histogram.calc_similar(arr_left, arr_right)
-        print(i)
+            if mat[i][j] > 0.85:
+                f_out.write(f"{i}\t{j}\n")  # 写入数据
+        # print(i)
+    f_out.close()  # 关闭文件
+    m = 0.0
+    n = 0.0
+    for i in range(len(points_2d)):
+        for j in range(len(points_2d[i])):
+            if points_2d[i][j]:
+                # print(mat[i][j])
+                m += 1.0
+                if mat[i][j] > 0.5:
+                    n += 1.0
+    print(n/m)
     img_path = "im_img/"
     img_list = os.listdir(img_path)
     df = pd.DataFrame(mat, index=img_list, columns=img_list)
@@ -50,7 +64,7 @@ def calculate_similar_from_arr(arr_list, img_list):
     ax = sns.heatmap(data=df,
                      square=True,
                      cmap=cmap1,
-                     # linewidths=0.01,
+                     # linewidths=0.,
                      # annot=True,
                      vmin=0, center=0.5, vmax=1,
                      xticklabels=5,
@@ -93,4 +107,14 @@ files_arr_list = create_arr_list(files_list)
 files_img_list = create_img_list(files_arr_list)
 mat = np.zeros((len(files_list), len(files_list)))
 # print(files_list)
+with open('similar_hash_pos.txt') as f:
+    lines = f.readlines()
+points = []
+points_2d = [[0] * len(files_list) for _ in range(len(files_list))]
+for line in lines:
+    x, y, *_ = line.split()
+    points.append((int(x), int(y)))
+    points_2d[int(x)][int(y)] = 1
+print(len(points_2d))
+
 calculate_similar_from_arr(files_list, files_img_list)

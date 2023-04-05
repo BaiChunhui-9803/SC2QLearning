@@ -8,6 +8,9 @@ from pysc2.lib import actions, features, units
 from pysc2.env import sc2_env, run_loop, environment
 from pysc2.bin import *
 import csv
+import cv2
+import sys
+
 
 # Bai
 from functools import singledispatchmethod
@@ -52,6 +55,70 @@ _MIN_INFLUENCE = -16 * 4
 
 # state_vec = []
 
+"""
+2023-04-04
+"""
+
+def getHash(pil_image):
+    open_cv_image = np.array(pil_image)
+    open_cv_image = open_cv_image[:, :, ::-1].copy()
+    chans = cv2.split(open_cv_image)
+    colors = ("b", "g", "r")
+    for (chans, color) in zip(chans, colors):
+        hist = cv2.calcHist([chans], [0], None, [8], [0, 256])
+    (b, g, r) = cv2.split(open_cv_image)
+    bH = cv2.equalizeHist(b)
+    gH = cv2.equalizeHist(g)
+    rH = cv2.equalizeHist(r)
+    equ2 = cv2.merge((bH, gH, rH))
+
+    chans2 = cv2.split(equ2)
+    r_list = []
+    g_list = []
+    b_list = []
+    for (chans2, color) in zip(chans2, colors):
+        hist = cv2.calcHist([chans2], [0], None, [8], [0, 256])
+        if color == 'r':
+            r_list = hist.T[0]
+        if color == 'g':
+            g_list = hist.T[0]
+        if color == 'b':
+            b_list = hist.T[0]
+    hashString = ''
+    r_max = max(r_list, key=abs)
+    g_max = max(g_list, key=abs)
+    b_max = max(b_list, key=abs)
+    for i in range(8):
+        hashString += '{:01X}'.format(int(r_list[i] / r_max * 15.9))
+    for i in range(8):
+        hashString += '{:01X}'.format(int(g_list[i] / g_max * 15.9))
+    for i in range(8):
+        hashString += '{:01X}'.format(int(b_list[i] / b_max * 15.9))
+    return hashString
+
+
+# 计算两个哈希值之间的差异
+def campHash(hash1, hash2):
+    n = 0
+    if len(hash1) != len(hash2):
+        return -1
+    for i in range(len(hash1)):
+        if hash1[i] != hash2[i]:
+            n = n + 1
+    return n
+
+
+def array_to_pil_img(arr: np.ndarray):
+    norm = mcolors.TwoSlopeNorm(vmin=_MIN_INFLUENCE, vmax=_MAX_INFLUENCE, vcenter=0.0)
+    p1 = sns.heatmap(arr, cmap="RdBu", norm=norm,
+                     annot=False, cbar=False, square=True, xticklabels=False, yticklabels=False)
+    s1 = p1.get_figure()
+    img = Image.frombytes('RGB', s1.canvas.get_width_height(), s1.canvas.tostring_rgb())
+    return ssim.make_regalur_image(img)
+
+"""
+2023-04-04
+"""
 
 def print_object_attribute(mp):
     print('开始输出属性:')
@@ -118,7 +185,7 @@ def merge_units_csv(file1, file2):
     # print(pd.read_csv("units_dataframe.csv"))
 
 
-def array_to_pil_img(arr: np.ndarray):
+def array_to_pil_img_2(arr: np.ndarray):
     # plt.figure()
     p1 = sns.heatmap(arr, cmap="coolwarm", vmin=-25, vmax=25, annot=False, cbar=False, square=True,
                      xticklabels=False, yticklabels=False, linewidth=.5)
@@ -130,6 +197,7 @@ def array_to_pil_img(arr: np.ndarray):
     buf.shape = (w, h, 4)
     buf = np.roll(buf, 3, axis=2)
     img = Image.frombytes("RGB", (w, h), buf.tobytes())
+    print(type(img))
     # plt.show()
     return ssim.make_regalur_image(img)
 
@@ -162,17 +230,17 @@ def save_arr(arr):
     np.savetxt(f"{file_path}{file_num}.txt", arr, fmt="%.2f")
 
 
-def array_to_pil_img(arr: np.ndarray, check_flag=False):
-    norm = mcolors.TwoSlopeNorm(vmin=_MIN_INFLUENCE, vmax=_MAX_INFLUENCE, vcenter=0.0)
-    p1 = sns.heatmap(arr, cmap="RdBu", norm=norm,
-                     annot=False, cbar=False, square=True, xticklabels=False, yticklabels=False)
-    s1 = p1.get_figure()
-    img = Image.frombytes('RGB', s1.canvas.get_width_height(), s1.canvas.tostring_rgb())
-    if check_flag:
-        save_img(img)
-        save_arr(arr)
-    # img.show()
-    return ssim.make_regalur_image(img)
+# def array_to_pil_img(arr: np.ndarray, check_flag=False):
+#     norm = mcolors.TwoSlopeNorm(vmin=_MIN_INFLUENCE, vmax=_MAX_INFLUENCE, vcenter=0.0)
+#     p1 = sns.heatmap(arr, cmap="RdBu", norm=norm,
+#                      annot=False, cbar=False, square=True, xticklabels=False, yticklabels=False)
+#     s1 = p1.get_figure()
+#     img = Image.frombytes('RGB', s1.canvas.get_width_height(), s1.canvas.tostring_rgb())
+#     if check_flag:
+#         save_img(img)
+#         save_arr(arr)
+#     # img.show()
+#     return ssim.make_regalur_image(img)
 
 
 class QLearningTable:
@@ -756,32 +824,19 @@ class SmartAgent(Agent):
         unit_my_list = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
         unit_enemy_list = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
         influence_map = self.get_influence_map(unit_my_list, unit_enemy_list)
-        return (len(unit_my_list), len(unit_enemy_list))
+        # return (len(unit_my_list), len(unit_enemy_list))
         # print(influence_map)
-        # top, bottom, left, right = self.get_map_boundary(influence_map, _BOUNDARY_WIDTH)
+        top, bottom, left, right = self.get_map_boundary(influence_map, _BOUNDARY_WIDTH)
         # 生成目标点
         target_gp = self.analyze_influence_map(influence_map)
         target_mp = self.grid_to_map(target_gp[0], target_gp[1])
         # self.ripple(influence_map, 0, (target_gp[0], target_gp[1]), 'Target')
         # 窗口取值
         window_map = influence_map.T[left:right, top:bottom]
-        # print(window_map)
-        # if len(state_vec) == 0:
-        #     state_vec.append((str(len(state_vec)), window_map))
-        #     return str(len(state_vec) - 1)
-        # else:
-        #     max_similar = 0
-        #     max_index = 0
-        #     for state_item, state_index in state_vec:
-        #         item_similar = mtx_similar(np.matrix(window_map, dtype="float"),
-        #                                    np.matrix(state_item[1], dtype="float"))
-        #         if item_similar > max_similar:
-        #             max_similar = item_similar
-        #             max_index = state_index
-        #     if max_similar < 0.95:
-        #         state_vec.append((str(len(state_vec)), window_map))
-        #         return str(len(state_vec) - 1)
-        # return window_map
+        # array_to_pil_img(window_map)
+        hash = getHash(array_to_pil_img(window_map))
+        # print('hash', hash)
+        return hash
 
     def step(self, obs):
         super(SmartAgent, self).step(obs)
@@ -877,6 +932,7 @@ class SmartAgent(Agent):
         # print(obs.observation['score_cumulative'])
 
         if obs.last():
+            # print(sys.getsizeof(plt) / 1024 / 1024, 'MB')
             # print('last.')
             # print(obs.reward)
             # 累积奖励
