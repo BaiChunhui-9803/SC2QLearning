@@ -89,7 +89,7 @@ def distance(pos1, pos2):
 def print_units_name(obs):
     print(obs.observation.raw_units[0].getAllNames())
     pd.DataFrame(data=[obs.observation.raw_units[0].getAllNames()]) \
-        .to_csv('data_for_overall/units_name.csv', header=False, index=False)
+        .to_csv('GetGameArix/data_for_overall/units_name.csv', header=False, index=False)
 
 
 def merge_units_csv(file1, file2):
@@ -107,7 +107,7 @@ def merge_units_csv(file1, file2):
     next(reader)  # 跳过表头
 
     # 创建一个输出文件，写入表头和数据
-    f_out = open("data_for_render/units_dataframe.csv", "w", newline='')
+    f_out = open("GetGameArix/data_for_render/units_dataframe.csv", "w", newline='')
     writer = csv.writer(f_out)
     writer.writerow(header)  # 写入表头
     for row in reader:
@@ -149,14 +149,14 @@ def mtx_similar(arr1: np.ndarray, arr2: np.ndarray) -> float:
 
 
 def save_img(img):
-    file_path = "./../SSIM/im_img/"
+    file_path = "draw/im_img/"
     files = os.listdir(file_path)
     file_num = str(len(files)).zfill(3)
     img.save(f"{file_path}{file_num}.png")
 
 
 def save_arr(arr):
-    file_path = "./../SSIM/im_arr/"
+    file_path = "draw/im_arr/"
     files = os.listdir(file_path)
     file_num = str(len(files)).zfill(3)
     np.savetxt(f"{file_path}{file_num}.txt", arr, fmt="%.2f")
@@ -364,7 +364,7 @@ class Agent(base_agent.BaseAgent):
 
 class SmartAgent(Agent):
     def draw_units(self):
-        unit_my_list, unit_enemy_list = self.get_units_list("data_for_render/units_dataframe.csv")
+        unit_my_list, unit_enemy_list = self.get_units_list("GetGameArix/data_for_render/units_dataframe.csv")
         print(unit_my_list, unit_enemy_list)
         influence_map = self.get_influence_map(unit_my_list, unit_enemy_list)
         top, bottom, left, right = self.get_map_boundary(influence_map, _BOUNDARY_WIDTH)
@@ -882,7 +882,7 @@ class SmartAgent(Agent):
             # 累积奖励
             # print(obs.observation['score_cumulative'])
             # print(obs.observation['score_cumulative'][5])
-            path = r'data_for_transit\game_result.txt'
+            path = r'GetGameArix/data_for_transit\game_result.txt'
             f = open(path, 'a', encoding='UTF-8')
             reward_d = - (self.score_cumulative_attack_now - self.score_attack_max)
             reward_a = self.score_cumulative_defense_now - self.score_defense_max
@@ -918,7 +918,7 @@ def main(unused_argv):
                 ),
                 score_index=-1,
                 # discount_zero_after_timeout=True,
-                # realtime=True,
+                realtime=True,
                 disable_fog=False,
                 step_mul=step_mul,
                 game_steps_per_episode=steps * step_mul

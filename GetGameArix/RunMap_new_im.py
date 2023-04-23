@@ -24,7 +24,7 @@ from collections import deque, namedtuple
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from PIL import Image
 import seaborn as sns
-import similar_histogram as ssim
+# import similar_histogram as ssim
 
 import statistics
 
@@ -54,6 +54,15 @@ _MAX_INFLUENCE = 25
 _MIN_INFLUENCE = -16 * 4
 
 # state_vec = []
+
+# 路径信息
+_UNITS_ATTRIBUTE_PATH = "datas/data_for_overall/units_name.csv"
+_UNITS_LIST_PATH = "datas/data_for_transit/units_list.csv"
+_UNITS_INFORMATION_PATH = "datas/data_for_render/units_dataframe.csv"
+_GAME_RESULT_PATH = "datas/data_for_transit/game_result.txt"
+_GAME_QTABLE_PATH = "datas/data_for_transit/q_table.csv"
+
+
 
 """
 2023-04-04
@@ -114,7 +123,10 @@ def array_to_pil_img(arr: np.ndarray):
                      annot=False, cbar=False, square=True, xticklabels=False, yticklabels=False)
     s1 = p1.get_figure()
     img = Image.frombytes('RGB', s1.canvas.get_width_height(), s1.canvas.tostring_rgb())
-    return ssim.make_regalur_image(img)
+    return make_regalur_image(img)
+
+def make_regalur_image(img, size=(256, 256)):
+    return img.resize(size).convert('RGB')
 
 """
 2023-04-04
@@ -156,7 +168,7 @@ def distance(pos1, pos2):
 def print_units_name(obs):
     print(obs.observation.raw_units[0].getAllNames())
     pd.DataFrame(data=[obs.observation.raw_units[0].getAllNames()]) \
-        .to_csv('data_for_overall/units_name.csv', header=False, index=False)
+        .to_csv(_UNITS_ATTRIBUTE_PATH, header=False, index=False)
 
 
 def merge_units_csv(file1, file2):
@@ -174,7 +186,7 @@ def merge_units_csv(file1, file2):
     next(reader)  # 跳过表头
 
     # 创建一个输出文件，写入表头和数据
-    f_out = open("data_for_render/units_dataframe.csv", "w", newline='')
+    f_out = open(_UNITS_ATTRIBUTE_PATH, "w", newline='')
     writer = csv.writer(f_out)
     writer.writerow(header)  # 写入表头
     for row in reader:
@@ -183,6 +195,15 @@ def merge_units_csv(file1, file2):
 
     # pd.set_option('display.max_columns', None)
     # print(pd.read_csv("units_dataframe.csv"))
+
+
+def hist_similar(lh, rh):
+    assert len(lh) == len(rh)
+    return sum(1 - (0 if l == r else float(abs(l - r)) / max(l, r)) for l, r in zip(lh, rh)) / len(lh)
+
+
+def calc_similar(li, ri):
+    return hist_similar(li.histogram(), ri.histogram())
 
 
 def array_to_pil_img_2(arr: np.ndarray):
@@ -199,7 +220,7 @@ def array_to_pil_img_2(arr: np.ndarray):
     img = Image.frombytes("RGB", (w, h), buf.tobytes())
     print(type(img))
     # plt.show()
-    return ssim.make_regalur_image(img)
+    return make_regalur_image(img)
 
 
 def mtx_similar(arr1: np.ndarray, arr2: np.ndarray) -> float:
@@ -213,18 +234,18 @@ def mtx_similar(arr1: np.ndarray, arr2: np.ndarray) -> float:
     # print('ssim: HeatMap1 & HeatMap2',
     # ssim.make_regalur_image(array_to_pil_img(dfData1), dfData2))
     # matplotlib.pyplot.close()
-    return ssim.calc_similar(array_to_pil_img(arr1), array_to_pil_img(arr2))
+    return calc_similar(array_to_pil_img(arr1), array_to_pil_img(arr2))
 
 
 def save_img(img):
-    file_path = "./../SSIM/im_img/"
+    file_path = "draw/im_img/"
     files = os.listdir(file_path)
     file_num = str(len(files)).zfill(3)
     img.save(f"{file_path}{file_num}.png")
 
 
 def save_arr(arr):
-    file_path = "./../SSIM/im_arr/"
+    file_path = "draw/im_arr/"
     files = os.listdir(file_path)
     file_num = str(len(files)).zfill(3)
     np.savetxt(f"{file_path}{file_num}.txt", arr, fmt="%.2f")
@@ -432,7 +453,7 @@ class Agent(base_agent.BaseAgent):
 
 class SmartAgent(Agent):
     def draw_units(self):
-        unit_my_list, unit_enemy_list = self.get_units_list("data_for_render/units_dataframe.csv")
+        unit_my_list, unit_enemy_list = self.get_units_list(_UNITS_ATTRIBUTE_PATH)
         print(unit_my_list, unit_enemy_list)
         influence_map = self.get_influence_map(unit_my_list, unit_enemy_list)
         top, bottom, left, right = self.get_map_boundary(influence_map, _BOUNDARY_WIDTH)
@@ -855,8 +876,8 @@ class SmartAgent(Agent):
             self.score_cumulative_defense_last = sum([item['health'] for item in unit_list_my])
             unit_list_both = unit_list_my + unit_list_enemy
             dataframe = pd.DataFrame(data=unit_list_both)
-            dataframe.to_csv('./data_for_transit/units_list.csv', header=True, index=False, sep=',')
-            merge_units_csv('./data_for_overall/units_name.csv', './data_for_transit/units_list.csv')
+            dataframe.to_csv(_UNITS_LIST_PATH, header=True, index=False, sep=',')
+            merge_units_csv(_UNITS_ATTRIBUTE_PATH, _UNITS_LIST_PATH)
             # return getattr(self, 'action_move_camera')(obs)
             # self.draw_units()
 
@@ -932,14 +953,16 @@ class SmartAgent(Agent):
         # print(obs.observation['score_cumulative'])
 
         if obs.last():
+            plt.close()
+            matplotlib.pyplot.figure().clear()
+            matplotlib.pyplot.close()
             # print(sys.getsizeof(plt) / 1024 / 1024, 'MB')
             # print('last.')
             # print(obs.reward)
             # 累积奖励
             # print(obs.observation['score_cumulative'])
             # print(obs.observation['score_cumulative'][5])
-            path = r'data_for_transit\game_result.txt'
-            f = open(path, 'a', encoding='UTF-8')
+            f = open(_GAME_RESULT_PATH, 'a', encoding='UTF-8')
             reward_d = - (self.score_cumulative_attack_now - self.score_attack_max)
             reward_a = self.score_cumulative_defense_now - self.score_defense_max
             # print(self.score_cumulative_attack_now, self.score_cumulative_defense_now)
@@ -948,7 +971,7 @@ class SmartAgent(Agent):
             f.close()
             # print(self.qtable.q_table)
             # print(self.end_game_state, self.end_game_frames)
-            self.qtable.q_table.to_csv('./data_for_transit/q_table.csv', header=True, index=True, sep=',')
+            self.qtable.q_table.to_csv(_GAME_QTABLE_PATH, header=True, index=True, sep=',')
             self.end_game_frames = _STEP * _STEP_MUL
             self.end_game_state = 'Dogfall'
         return getattr(self, action)(obs)
@@ -960,8 +983,8 @@ def main(unused_argv):
     try:
         with sc2_env.SC2Env(
                 # map_name="MarineMicro",
-                # map_name="MarineMicro_TNC_1",
-                map_name="MarineMicro_MvsM_4",
+                map_name="MarineMicro_TNC_1",
+                # map_name="MarineMicro_MvsM_4",
                 # map_name="MarineMicro_ZvsM_4",
                 players=[sc2_env.Agent(sc2_env.Race.terran),
                          # sc2_env.Agent(sc2_env.Race.terran)],
@@ -970,11 +993,12 @@ def main(unused_argv):
                 agent_interface_format=features.AgentInterfaceFormat(
                     action_space=actions.ActionSpace.RAW,
                     use_raw_units=True,
-                    raw_resolution=_MAP_RESOLUTION,
+                    raw_resolution=_MAP_RESOLUTION
                 ),
                 score_index=-1,
                 # discount_zero_after_timeout=True,
                 # realtime=True,
+                # visualize=True,
                 disable_fog=False,
                 step_mul=step_mul,
                 game_steps_per_episode=steps * step_mul

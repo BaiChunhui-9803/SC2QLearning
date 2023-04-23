@@ -50,7 +50,7 @@ def calculate_similar_from_arr(arr_list, img_list):
                 if mat[i][j] > 0.5:
                     n += 1.0
     print(n/m)
-    img_path = "im_img/"
+    img_path = "GetGameArix/draw/im_img/"
     img_list = os.listdir(img_path)
     df = pd.DataFrame(mat, index=img_list, columns=img_list)
     colors = ['white', 'white', 'lightskyblue', 'darkblue', 'white', 'pink', 'indianred', 'crimson']
@@ -100,7 +100,7 @@ def create_img_list(file_list):
     return file_img_list
 
 
-file_path = "im_arr/"
+file_path = "GetGameArix/draw/im_arr/"
 files_list = os.listdir(file_path)
 print(files_list)
 files_arr_list = create_arr_list(files_list)
