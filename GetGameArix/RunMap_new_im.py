@@ -39,34 +39,38 @@ _MY_UNIT_INFLUENCE = [25]
 _ENEMY_UNIT_INFLUENCE = [-16, -9, -4, -1]
 # _MY_UNIT_TYPE = 105
 # _MY_UNIT_TYPE_ARG = units.Zerg.Zergling
-_MY_UNIT_TYPE = 48
-_MY_UNIT_TYPE_ARG = units.Terran.Marine
 # _ENEMY_UNIT_TYPE = 105
 # _ENEMY_UNIT_TYPE_ARG = units.Zerg.Zergling
+_MY_UNIT_TYPE = 48
+_MY_UNIT_TYPE_ARG = units.Terran.Marine
 _ENEMY_UNIT_TYPE = 48
 _ENEMY_UNIT_TYPE_ARG = units.Terran.Marine
 _BOUNDARY_WIDTH = 2
 
-_STEP = 25
+_MY_UNITS_NUMBER = 4
+_ENEMY_UNITS_NUMBER = 4
+_STEP = 25 * _MY_UNITS_NUMBER / 4
 _STEP_MUL = 10
+_MAX_INFLUENCE = 25 * _ENEMY_UNITS_NUMBER
+_MIN_INFLUENCE = -16 * _ENEMY_UNITS_NUMBER
 
-_MAX_INFLUENCE = 25
-_MIN_INFLUENCE = -16 * 4
+_EPISODE_COUNT = 1
 
 # state_vec = []
 
 # 路径信息
 _UNITS_ATTRIBUTE_PATH = "datas/data_for_overall/units_name.csv"
-_UNITS_LIST_PATH = "datas/data_for_transit/units_list.csv"
+_UNITS_LIST_PATH = "datas/data_for_overall/units_list.csv"
 _UNITS_INFORMATION_PATH = "datas/data_for_render/units_dataframe.csv"
 _GAME_RESULT_PATH = "datas/data_for_transit/game_result.txt"
 _GAME_QTABLE_PATH = "datas/data_for_transit/q_table.csv"
-
+_EPISODE_QTABLE_PATH = "datas/data_for_transit/episode_q_table.csv"
 
 
 """
 2023-04-04
 """
+
 
 def getHash(pil_image):
     open_cv_image = np.array(pil_image)
@@ -125,8 +129,10 @@ def array_to_pil_img(arr: np.ndarray):
     img = Image.frombytes('RGB', s1.canvas.get_width_height(), s1.canvas.tostring_rgb())
     return make_regalur_image(img)
 
+
 def make_regalur_image(img, size=(256, 256)):
     return img.resize(size).convert('RGB')
+
 
 """
 2023-04-04
@@ -197,6 +203,18 @@ def merge_units_csv(file1, file2):
     # print(pd.read_csv("units_dataframe.csv"))
 
 
+def append_qtable_csv(episode_count, qtable, actions):
+    if episode_count == 2:
+        with open(_EPISODE_QTABLE_PATH, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(actions)
+        with open(_GAME_RESULT_PATH, "w") as f:
+            f.write("")
+    with open(_EPISODE_QTABLE_PATH, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(np.sum(qtable, axis=0))
+
+
 def hist_similar(lh, rh):
     assert len(lh) == len(rh)
     return sum(1 - (0 if l == r else float(abs(l - r)) / max(l, r)) for l, r in zip(lh, rh)) / len(lh)
@@ -251,6 +269,97 @@ def save_arr(arr):
     np.savetxt(f"{file_path}{file_num}.txt", arr, fmt="%.2f")
 
 
+# 计算两点之间的距离
+def distance_units(point1, point2):
+    return math.sqrt((point1[1] - point2[1])**2 + (point1[2] - point2[2])**2)
+
+# 计算每个点到所有聚类中心的距离
+def calc_distances(points, centers):
+    distances = []
+    for point in points:
+        row = []
+        for center in centers:
+            # print(center)
+            row.append(distance_units(point, center))
+        distances.append(row)
+    return distances
+
+# 将每个点分配到最近的聚类中心
+def assign_clusters(points, centers):
+    distances = calc_distances(points, centers)
+    clusters = [[] for i in range(len(centers))]
+    for i in range(len(points)):
+        min_dist = float('inf')
+        min_idx = -1
+        for j in range(len(centers)):
+            if distances[i][j] < min_dist:
+                min_dist = distances[i][j]
+                min_idx = j
+        clusters[min_idx].append(points[i])
+    return clusters
+
+# 计算聚类中心
+def calc_centers(clusters):
+    centers = []
+    for cluster in clusters:
+        id_sum = 0
+        x_sum = 0
+        y_sum = 0
+        for point in cluster:
+            id_sum += point[0]
+            x_sum += point[1]
+            y_sum += point[2]
+        center_id = id_sum
+        # print('cluster', len(cluster), cluster)
+        if len(cluster) > 0:
+            center_x = x_sum / len(cluster)
+            center_y = y_sum / len(cluster)
+            centers.append((center_id, center_x, center_y))
+    return centers
+
+# 计算所有点的平均距离
+def calc_avg_distance(points, centers):
+    distances = calc_distances(points, centers)
+    sum_dist = 0
+    for i in range(len(points)):
+        min_dist = float('inf')
+        for j in range(len(centers)):
+            if distances[i][j] < min_dist:
+                min_dist = distances[i][j]
+        sum_dist += min_dist
+    return sum_dist / len(points)
+
+# 将A类和B类坐标点分别聚类
+def kmeans(points_a, points_b, k_a, k_b):
+    # 初始化聚类中心
+    # print('a', points_a, k_a)
+    # print('b', points_b, k_b)
+    if len(points_a) > 0 and len(points_b) > 0:
+        centers_a = random.sample(points_a, k_a)
+        centers_b = random.sample(points_b, k_b)
+    else:
+        return [], [], []
+    # 迭代聚类过程
+    for i in range(10):
+        # 分配聚类
+        clusters_a = assign_clusters(points_a, centers_a)
+        clusters_b = assign_clusters(points_b, centers_b)
+        # 计算聚类中心
+        centers_a = calc_centers(clusters_a)
+        centers_b = calc_centers(clusters_b)
+    # 对A类坐标点进行最近距离的匹配
+    matches = []
+    for cluster_a in clusters_a:
+        for point_a in cluster_a:
+            min_dist = float('inf')
+            min_point_b = None
+            for point_b in points_b:
+                if distance_units(point_a, point_b) < min_dist:
+                    min_dist = distance_units(point_a, point_b)
+                    min_point_b = point_b
+            matches.append((point_a, min_point_b))
+    return clusters_a, clusters_b, matches
+
 # def array_to_pil_img(arr: np.ndarray, check_flag=False):
 #     norm = mcolors.TwoSlopeNorm(vmin=_MIN_INFLUENCE, vmax=_MAX_INFLUENCE, vcenter=0.0)
 #     p1 = sns.heatmap(arr, cmap="RdBu", norm=norm,
@@ -265,8 +374,8 @@ def save_arr(arr):
 
 
 class QLearningTable:
-    # def __init__(self, actions, learning_rate=0.LR80_RD10, reward_decay=0.9):
-    def __init__(self, actions, learning_rate=0.1, reward_decay=0.1):
+    # def __init__(self, actions, learning_rate=0.1, reward_decay=0.9):
+    def __init__(self, actions, learning_rate=0.5, reward_decay=0.9):
         self.actions = actions
         self.learning_rate = learning_rate
         self.reward_decay = reward_decay
@@ -352,12 +461,17 @@ class QLearningTable:
 class Agent(base_agent.BaseAgent):
     actions = (
         # "do_nothing",
-        # "action_TFC",
-        "action_TFC_finish",
-        # "action_TNC",
-        "action_TNC_finish",
+        "action_TFC",
+        "action_TFU",
+        "action_TNC",
+        # "action_TNU",
         "action_greedy",
-        "action_noise"
+        "action_DFC",
+        "action_DFU",
+        "action_DNC",
+        "action_DNU",
+        "action_retreat"
+        # "action_noise"
     )
 
     def get_units_list(self, file):
@@ -425,6 +539,15 @@ class Agent(base_agent.BaseAgent):
             for unit in enemy_units:
                 position = tuple(map(lambda x, y: x + y, position, (unit.x, unit.y)))
             return (position[0] / len(enemy_units), position[1] / len(enemy_units))
+
+    def get_center_position_point(self, points):
+        position = (0, 0)
+        my_units = [(unit[1], unit[2]) for unit in points]
+        if len(my_units) == 0:
+            return position
+        for unit in my_units:
+            position = tuple(map(lambda x, y: x + y, position, (unit[0], unit[1])))
+        return (position[0] / len(my_units), position[1] / len(my_units))
 
     def choice_nearest_weakest_enemy(self, mp, enemy_list):
         sorted_enemy_lst = sorted([(item['tag'], item['x'], item['y'], item['health'], distance(mp, (item['x'], item['y']))) for item in enemy_list], key=lambda x: x[3])
@@ -617,8 +740,69 @@ class SmartAgent(Agent):
             target_mp = self.grid_to_map(target_gp[0], target_gp[1])
         return target_mp
 
+    # def k_means_clustering(self, points, k, threshold):
+    #     # Randomly select k initial cluster centers
+    #     centers = random.sample(points, k)
+    #
+    #     while True:
+    #         # Initialize empty clusters
+    #         clusters = [[] for _ in range(k)]
+    #
+    #         # Assign each point to the nearest cluster center
+    #         for point in points:
+    #             distances = [math.dist((point[1], point[2]), (center[1], center[2])) for center in centers]
+    #             nearest_center = distances.index(min(distances))
+    #             clusters[nearest_center].append(point)
+    #
+    #         # Update cluster centers
+    #         new_centers = [list(map(lambda x: sum(x) / len(x), zip(*cluster))) for cluster in clusters]
+    #
+    #         # Check for convergence
+    #         if all([math.isclose(math.dist((centers[i][1], centers[i][2]), (new_centers[i][1], new_centers[i][2])), 0, rel_tol=threshold) for i in range(k)]):
+    #             break
+    #
+    #         centers = new_centers
+    #
+    #     return clusters
+
+    # def action_TFC(self, obs):
+    #     # print('action_TNC')
+    #     """
+    #     T: together, 所有单位聚合
+    #     F: far, 远离目标区域
+    #     C: center, 目标区域选定为敌方中心区域
+    #     :param obs:
+    #     :return:
+    #     """
+    #     my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+    #     enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+    #     if len(my_units) > 0:
+    #         enemy_center = (0, 0)
+    #         if self.get_center_position(obs, 'Enemy', units.Zerg.Zergling)[0] > 0 and \
+    #                 self.get_center_position(obs, 'Enemy', units.Zerg.Zergling)[1] > 0:
+    #             enemy_center = self.get_center_position(obs, 'Enemy', units.Zerg.Zergling)
+    #         else:
+    #             enemy_center = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
+    #         TFC_ref_position = self.get_target_position(obs, my_units, enemy_units, 'TFC')
+    #
+    #         marine = random.choice(my_units)
+    #         # 大成功: 同一时间选取多个单元进行动作
+    #         # 大成功: 并且可以选择不同的动作，仅仅需要return一个list即可
+    #         marines_tag_list = [item['tag'] for item in my_units]
+    #         list1 = marines_tag_list[:len(marines_tag_list) // 2]
+    #         list2 = marines_tag_list[len(marines_tag_list) // 2:]
+    #         x_offset = random.randint(-1, 1)
+    #         y_offset = random.randint(-1, 1)
+    #
+    #         return [actions.RAW_FUNCTIONS.Smart_pt(
+    #             "now", list1, (enemy_center[0] + x_offset, enemy_center[1] + y_offset)),
+    #             actions.RAW_FUNCTIONS.Smart_pt(
+    #                 "now", list2, (enemy_center[0] - x_offset, enemy_center[1] - y_offset))
+    #         ]
+    #     # print(self.get_center_position(obs, units.Terran.Marine))
+    #
+    #     return actions.RAW_FUNCTIONS.no_op()
     def action_TFC(self, obs):
-        # print('action_TNC')
         """
         T: together, 所有单位聚合
         F: far, 远离目标区域
@@ -626,68 +810,63 @@ class SmartAgent(Agent):
         :param obs:
         :return:
         """
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        if len(my_units) > 0:
-            enemy_center = (0, 0)
-            if self.get_center_position(obs, 'Enemy', units.Zerg.Zergling)[0] > 0 and \
-                    self.get_center_position(obs, 'Enemy', units.Zerg.Zergling)[1] > 0:
-                enemy_center = self.get_center_position(obs, 'Enemy', units.Zerg.Zergling)
-            else:
-                enemy_center = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
-            TFC_ref_position = self.get_target_position(obs, my_units, enemy_units, 'TFC')
-
-            marine = random.choice(my_units)
-            # 大成功: 同一时间选取多个单元进行动作
-            # 大成功: 并且可以选择不同的动作，仅仅需要return一个list即可
-            marines_tag_list = [item['tag'] for item in my_units]
-            list1 = marines_tag_list[:len(marines_tag_list) // 2]
-            list2 = marines_tag_list[len(marines_tag_list) // 2:]
-            x_offset = random.randint(-1, 1)
-            y_offset = random.randint(-1, 1)
-
-            return [actions.RAW_FUNCTIONS.Smart_pt(
-                "now", list1, (enemy_center[0] + x_offset, enemy_center[1] + y_offset)),
-                actions.RAW_FUNCTIONS.Smart_pt(
-                    "now", list2, (enemy_center[0] - x_offset, enemy_center[1] - y_offset))
-            ]
-        # print(self.get_center_position(obs, units.Terran.Marine))
-
-        return actions.RAW_FUNCTIONS.no_op()
-
-    def action_TFC_finish(self, obs):
+        # print(obs)
         action_lst = []
         my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
         enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
         my_units_lst = sorted([(item['tag'], item['weapon_cooldown']) for item in my_units], key=lambda x: x[0])
         enemy_units_lst = [item['tag'] for item in enemy_units]
         mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
-        # print(self._move_back)
-        # print([item[0] for item in my_units_lst], [item[1] for item in my_units_lst])
         if not self._move_back:
             if len(enemy_units) > 0 and len(my_units) > 0:
                 nearest_enemy = self.get_nearest_enemy(mp, enemy_units)
-                # print(obs.observation.game_loop, 'Attack_unit')
                 self.action_queue.append('Attack_unit')
                 return actions.RAW_FUNCTIONS.Attack_unit(
                     "now", [item[0] for item in my_units_lst], nearest_enemy)
-                # return actions.RAW_FUNCTIONS.Attack_unit(
-                #     "now", [item[0] for item in my_units_lst], random.choice(enemy_units_lst))
         else:
             dis = distance(mp, self._backup_target_map)
-            # print(mp, self._backup_target_map, dis)
             if dis < 5:
-                # print('0.0')
                 self._move_back = False
             if len(my_units) > 0:
                 self._backup_target_map = self.get_target_position(obs, my_units, enemy_units, 'TFC')
-                # print(obs.observation.game_loop, 'Smart_pt')
                 self.action_queue.append('Smart_pt')
                 action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
                     "now", [item[0] for item in my_units_lst],
                     (self._backup_target_map[0], self._backup_target_map[1])))
                 action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(mp))
                 return action_lst
+        return actions.RAW_FUNCTIONS.no_op()
+
+    def action_TFU(self, obs):
+        """
+        T: together, 所有单位聚合
+        F: far, 远离目标区域
+        U: unit, 目标区域选定为敌方最近单元
+        :param obs:
+        :return:
+        """
+        action_lst = []
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['weapon_cooldown']) for item in my_units], key=lambda x: x[0])
+        enemy_units_lst = [item['tag'] for item in enemy_units]
+        mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
+        if not self._move_back:
+            if len(enemy_units) > 0 and len(my_units) > 0:
+                nearest_enemy = self.get_nearest_enemy(mp, enemy_units)
+        else:
+            dis = distance(mp, self._backup_target_map)
+            if dis < 5:
+                self._move_back = False
+            if len(my_units) > 0:
+                if len(enemy_units) > 0:
+                    nearest_enemy = self.get_nearest_enemy(mp, enemy_units)
+                    self._backup_target_map = self.get_target_position(obs, my_units, enemy_units, 'TFC')
+                    self.action_queue.append('Smart_pt')
+                    action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
+                        "now", [item[0] for item in my_units_lst], nearest_enemy))
+                    action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(mp))
+                    return action_lst
         # if len(my_units) > 0:
         #     self._backup_target_map = self.get_target_position(obs, my_units, enemy_units, 'TNC')
         #     action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
@@ -701,6 +880,32 @@ class SmartAgent(Agent):
         #     return action_lst
         return actions.RAW_FUNCTIONS.no_op()
 
+    # def action_TNC(self, obs):
+    #     # print('action_TNC')
+    #     """
+    #     T: together, 所有单位聚合
+    #     N: near, 靠近目标区域
+    #     C: center, 目标区域选定为敌方中心区域
+    #     :param obs:
+    #     :return:
+    #     """
+    #     action_lst = []
+    #     my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+    #     enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+    #     my_units_tag_lst = [item['tag'] for item in my_units]
+    #     enemy_units_tag_lst = [item['tag'] for item in enemy_units]
+    #     if len(my_units) > 0:
+    #         self._backup_target_map = self.get_target_position(obs, my_units, enemy_units, 'TNC')
+    #         action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
+    #             "now", my_units_tag_lst, (self._backup_target_map[0], self._backup_target_map[1])))
+    #         if len(enemy_units) > 0:
+    #             action_lst.append(actions.RAW_FUNCTIONS.Attack_unit(
+    #                 "queued", my_units_tag_lst, random.choice(enemy_units_tag_lst)))
+    #         elif len(enemy_units) == 0:
+    #             action_lst.append(actions.RAW_FUNCTIONS.Attack_pt(
+    #                 "queued", my_units_tag_lst, (self._backup_target_map[0], self._backup_target_map[1])))
+    #         return action_lst
+    #     return actions.RAW_FUNCTIONS.no_op()
     def action_TNC(self, obs):
         # print('action_TNC')
         """
@@ -710,25 +915,6 @@ class SmartAgent(Agent):
         :param obs:
         :return:
         """
-        action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        my_units_tag_lst = [item['tag'] for item in my_units]
-        enemy_units_tag_lst = [item['tag'] for item in enemy_units]
-        if len(my_units) > 0:
-            self._backup_target_map = self.get_target_position(obs, my_units, enemy_units, 'TNC')
-            action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
-                "now", my_units_tag_lst, (self._backup_target_map[0], self._backup_target_map[1])))
-            if len(enemy_units) > 0:
-                action_lst.append(actions.RAW_FUNCTIONS.Attack_unit(
-                    "queued", my_units_tag_lst, random.choice(enemy_units_tag_lst)))
-            elif len(enemy_units) == 0:
-                action_lst.append(actions.RAW_FUNCTIONS.Attack_pt(
-                    "queued", my_units_tag_lst, (self._backup_target_map[0], self._backup_target_map[1])))
-            return action_lst
-        return actions.RAW_FUNCTIONS.no_op()
-
-    def action_TNC_finish(self, obs):
         action_lst = []
         my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
         enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
@@ -774,6 +960,361 @@ class SmartAgent(Agent):
         #     return action_lst
         return actions.RAW_FUNCTIONS.no_op()
 
+    def action_TNU(self, obs):
+        # print('action_TNC')
+        """
+        T: together, 所有单位聚合
+        N: near, 靠近目标区域
+        U: unit, 目标区域选定为敌方最近单元
+        :param obs:
+        :return:
+        """
+        action_lst = []
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['weapon_cooldown']) for item in my_units], key=lambda x: x[0])
+        enemy_units_lst = [item['tag'] for item in enemy_units]
+        mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
+        if not self._move_back:
+            if len(enemy_units) > 0 and len(my_units) > 0:
+                nearest_enemy = self.get_nearest_enemy(mp, enemy_units)
+                self.action_queue.append('Attack_unit')
+                return actions.RAW_FUNCTIONS.Attack_unit(
+                    "now", [item[0] for item in my_units_lst], nearest_enemy)
+        else:
+            dis = distance(mp, self._backup_target_map)
+            # print(mp, self._backup_target_map, dis)
+            if dis < 5:
+                # print('0.0')
+                self._move_back = False
+            if len(my_units) > 0:
+                if len(enemy_units) > 0 and len(my_units) > 0:
+                    nearest_enemy = self.get_nearest_enemy(mp, enemy_units)
+                    # self._backup_target_map = self.get_target_position(obs, my_units, enemy_units, 'TNC')
+                    # print(obs.observation.game_loop, 'Smart_pt')
+                    self.action_queue.append('Smart_pt')
+                    action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
+                        "now", [item[0] for item in my_units_lst], nearest_enemy))
+                    action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(mp))
+                    return action_lst
+
+        # if len(my_units) > 0:
+        #     self._backup_target_map = self.get_target_position(obs, my_units, enemy_units, 'TNC')
+        #     action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
+        #         "now", my_units_tag_lst, (self._backup_target_map[0], self._backup_target_map[1])))
+        #     if len(enemy_units) > 0:
+        #         action_lst.append(actions.RAW_FUNCTIONS.Attack_unit(
+        #             "queued", my_units_tag_lst, random.choice(enemy_units_tag_lst)))
+        #     elif len(enemy_units) == 0:
+        #         action_lst.append(actions.RAW_FUNCTIONS.Attack_pt(
+        #             "queued", my_units_tag_lst, (self._backup_target_map[0], self._backup_target_map[1])))
+        #     return action_lst
+        return actions.RAW_FUNCTIONS.no_op()
+
+    def action_DFC(self, obs):
+        """
+        D: disperse, 所有单位分散并聚类
+        F: far, 远离目标区域
+        C: center, 目标区域选定为敌方中心区域
+        :param obs:
+        :return:
+        """
+        # 有bug
+        action_lst = []
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
+        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
+        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
+        clusters_a_num = 1
+        clusters_b_num = 1
+        if len(my_units_lst) > 1:
+            clusters_a_num = int(math.log2(len(my_units_lst))) + 1
+        if len(enemy_units_lst) > 1:
+            clusters_b_num = int(math.log2(len(enemy_units_lst))) + 1
+        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
+        # print('my_units_lst', my_units)
+        # print('my_clusters', clusters_a)
+        # print('enemy_clusters', clusters_b)
+        # print('matchs:')
+        # for match in matches:
+        #     print(f'{match[0]} 匹配 {match[1]}')
+        # print(matches)
+        for k in range(len(clusters_a)):
+            # print(cluster)
+            # print(my_mp)
+            enemy_cluster_units_lst = []
+            for unit in clusters_a[k]:
+                for match in matches:
+                    # print(match)
+                    # print(cluster)
+                    if match[0][0] == unit[0]:
+                        enemy_cluster_units_lst.append(match[1])
+
+            my_mp = self.get_center_position_point(clusters_a[k])
+            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
+            # if not self._dis_move_back[k]:
+            self.action_queue.append('Attack_unit')
+            for i in range(len(clusters_a[k])):
+                action_lst.append(actions.RAW_FUNCTIONS.Attack_pt(
+                    "now", clusters_a[k][i][0],
+                    (enemy_cluster_units_lst[i][1], enemy_cluster_units_lst[i][2])))
+            return action_lst
+            # else:
+            #     dis = distance(my_mp, self._backup_target_map)
+            #     if dis < 5:
+            #         self._dis_move_back[k] = False
+            #         # print(self._dis_move_back)
+            #     if len(clusters_a[k]) > 0:
+            #         self.action_queue.append('Smart_pt')
+            #         action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
+            #             "now", [item[0] for item in clusters_a[k]], enemy_mp))
+            #         action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(my_mp))
+            #         return action_lst
+            # return actions.RAW_FUNCTIONS.no_op()
+        return actions.RAW_FUNCTIONS.no_op()
+
+            # print('my_cluster_units_lst', my_cluster_units_lst)
+            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
+            # min_dist = float('inf')
+            # min_idx = -1
+            # for j in range(clusters_num):
+            #     enemy_list = clusters_b[j]
+            #     ememy_mp = self.get_center_position_point(enemy_list)
+            #     if distance(my_mp, ememy_mp) < min_dist:
+            #         min_dist = distance(my_mp, ememy_mp)
+            #         min_idx = j
+            # print(clusters_b[min_idx], min_dist)
+            # enemy_cluster_units_lst = clusters_b[i]
+
+    def action_DFU(self, obs):
+        """
+        D: disperse, 所有单位分散并聚类
+        F: far, 远离目标区域
+        C: center, 目标区域选定为敌方中心区域
+        :param obs:
+        :return:
+        """
+        # 有bug
+        action_lst = []
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
+        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
+        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
+        clusters_a_num = 1
+        clusters_b_num = 1
+        if len(my_units_lst) > 1:
+            clusters_a_num = int(math.log2(len(my_units_lst))) + 1
+        if len(enemy_units_lst) > 1:
+            clusters_b_num = int(math.log2(len(enemy_units_lst))) + 1
+        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
+        # print('my_units_lst', my_units)
+        # print('my_clusters', clusters_a)
+        # print('enemy_clusters', clusters_b)
+        # print('matchs:')
+        # for match in matches:
+        #     print(f'{match[0]} 匹配 {match[1]}')
+        # print(matches)
+        for k in range(len(clusters_a)):
+            # print(cluster)
+            # print(my_mp)
+            enemy_cluster_units_lst = []
+            for unit in clusters_a[k]:
+                for match in matches:
+                    # print(match)
+                    # print(cluster)
+                    if match[0][0] == unit[0]:
+                        enemy_cluster_units_lst.append(match[1])
+
+            my_mp = self.get_center_position_point(clusters_a[k])
+            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
+            # if not self._dis_move_back[k]:
+            self.action_queue.append('Attack_unit')
+            for i in range(len(clusters_a[k])):
+                action_lst.append(actions.RAW_FUNCTIONS.Attack_unit(
+                    "now", clusters_a[k][i][0],
+                    enemy_cluster_units_lst[i][0]))
+            return action_lst
+            # else:
+            #     dis = distance(my_mp, self._backup_target_map)
+            #     if dis < 5:
+            #         self._dis_move_back[k] = False
+            #         # print(self._dis_move_back)
+            #     for i in range(len(clusters_a[k])):
+            #         action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
+            #             "now", clusters_a[k][i][0],
+            #             enemy_cluster_units_lst[i][0]))
+            #     return action_lst
+        return actions.RAW_FUNCTIONS.no_op()
+
+            # print('my_cluster_units_lst', my_cluster_units_lst)
+            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
+            # min_dist = float('inf')
+            # min_idx = -1
+            # for j in range(clusters_num):
+            #     enemy_list = clusters_b[j]
+            #     ememy_mp = self.get_center_position_point(enemy_list)
+            #     if distance(my_mp, ememy_mp) < min_dist:
+            #         min_dist = distance(my_mp, ememy_mp)
+            #         min_idx = j
+            # print(clusters_b[min_idx], min_dist)
+            # enemy_cluster_units_lst = clusters_b[i]
+
+    def action_DNC(self, obs):
+        """
+        D: disperse, 所有单位分散并聚类
+        F: far, 远离目标区域
+        C: center, 目标区域选定为敌方中心区域
+        :param obs:
+        :return:
+        """
+        # 有bug
+        action_lst = []
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
+        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
+        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
+        clusters_a_num = 1
+        clusters_b_num = 1
+        if len(my_units_lst) > 1:
+            clusters_a_num = int(math.log2(len(my_units_lst))) + 1
+        if len(enemy_units_lst) > 1:
+            clusters_b_num = int(math.log2(len(enemy_units_lst))) + 1
+        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
+        # print('my_units_lst', my_units)
+        # print('my_clusters', clusters_a)
+        # print('enemy_clusters', clusters_b)
+        # print('matchs:')
+        # for match in matches:
+        #     print(f'{match[0]} 匹配 {match[1]}')
+        # print(matches)
+        for k in range(len(clusters_a)):
+            # print(cluster)
+            # print(my_mp)
+            enemy_cluster_units_lst = []
+            for unit in clusters_a[k]:
+                for match in matches:
+                    # print(match)
+                    # print(cluster)
+                    if match[0][0] == unit[0]:
+                        enemy_cluster_units_lst.append(match[1])
+
+            my_mp = self.get_center_position_point(clusters_a[k])
+            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
+            # if not self._dis_move_back[k]:
+            self.action_queue.append('Attack_unit')
+            for i in range(len(clusters_a[k])):
+                 action_lst.append(actions.RAW_FUNCTIONS.Attack_pt(
+                     "now", clusters_a[k][i][0],
+                     (enemy_cluster_units_lst[i][1], enemy_cluster_units_lst[i][2])))
+            return action_lst
+            # else:
+            #     dis = distance(my_mp, self._backup_target_map)
+            #     if dis < 5:
+            #         self._dis_move_back[k] = False
+            #         # print(self._dis_move_back)
+            #     if len(clusters_a[k]) > 0:
+            #         self.action_queue.append('Smart_pt')
+            #         action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
+            #             "now", [item[0] for item in clusters_a[k]], enemy_mp))
+            #         action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(my_mp))
+            #         return action_lst
+            # return actions.RAW_FUNCTIONS.no_op()
+        return actions.RAW_FUNCTIONS.no_op()
+
+            # print('my_cluster_units_lst', my_cluster_units_lst)
+            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
+            # min_dist = float('inf')
+            # min_idx = -1
+            # for j in range(clusters_num):
+            #     enemy_list = clusters_b[j]
+            #     ememy_mp = self.get_center_position_point(enemy_list)
+            #     if distance(my_mp, ememy_mp) < min_dist:
+            #         min_dist = distance(my_mp, ememy_mp)
+            #         min_idx = j
+            # print(clusters_b[min_idx], min_dist)
+            # enemy_cluster_units_lst = clusters_b[i]
+
+    def action_DNU(self, obs):
+        """
+        D: disperse, 所有单位分散并聚类
+        F: far, 远离目标区域
+        C: center, 目标区域选定为敌方中心区域
+        :param obs:
+        :return:
+        """
+        # 有bug
+        action_lst = []
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
+        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
+        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
+        clusters_a_num = 1
+        clusters_b_num = 1
+        if len(my_units_lst) > 1:
+            clusters_a_num = int(math.log2(len(my_units_lst))) + 1
+        if len(enemy_units_lst) > 1:
+            clusters_b_num = int(math.log2(len(enemy_units_lst))) + 1
+        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
+        # print('my_units_lst', my_units)
+        # print('my_clusters', clusters_a)
+        # print('enemy_clusters', clusters_b)
+        # print('matchs:')
+        # for match in matches:
+        #     print(f'{match[0]} 匹配 {match[1]}')
+        # print(matches)
+        for k in range(len(clusters_a)):
+            # print(cluster)
+            # print(my_mp)
+            enemy_cluster_units_lst = []
+            for unit in clusters_a[k]:
+                for match in matches:
+                    # print(match)
+                    # print(cluster)
+                    if match[0][0] == unit[0]:
+                        enemy_cluster_units_lst.append(match[1])
+
+            my_mp = self.get_center_position_point(clusters_a[k])
+            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
+            # if not self._dis_move_back[k]:
+            self.action_queue.append('Attack_unit')
+            for i in range(len(clusters_a[k])):
+                action_lst.append(actions.RAW_FUNCTIONS.Attack_unit(
+                    "now", clusters_a[k][i][0],
+                    enemy_cluster_units_lst[i][0]))
+            return action_lst
+            # else:
+            #     dis = distance(my_mp, self._backup_target_map)
+            #     if dis < 5:
+            #         self._dis_move_back[k] = False
+            #         # print(self._dis_move_back)
+            #     for i in range(len(clusters_a[k])):
+            #         action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
+            #             "now", clusters_a[k][i][0],
+            #             enemy_cluster_units_lst[i][0]))
+            #     return action_lst
+        return actions.RAW_FUNCTIONS.no_op()
+
+            # print('my_cluster_units_lst', my_cluster_units_lst)
+            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
+            # min_dist = float('inf')
+            # min_idx = -1
+            # for j in range(clusters_num):
+            #     enemy_list = clusters_b[j]
+            #     ememy_mp = self.get_center_position_point(enemy_list)
+            #     if distance(my_mp, ememy_mp) < min_dist:
+            #         min_dist = distance(my_mp, ememy_mp)
+            #         min_idx = j
+            # print(clusters_b[min_idx], min_dist)
+            # enemy_cluster_units_lst = clusters_b[i]
+
     def action_greedy(self, obs):
         my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
         my_units_lst = sorted([(item['tag'], item['weapon_cooldown']) for item in my_units], key=lambda x: x[0])
@@ -797,11 +1338,25 @@ class SmartAgent(Agent):
         #             "now", [item[0] for item in my_units_lst])
         return actions.RAW_FUNCTIONS.no_op()
 
+    def action_retreat(self, obs):
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['weapon_cooldown']) for item in my_units], key=lambda x: x[0])
+        if len(my_units) > 0:
+            return actions.RAW_FUNCTIONS.Smart_pt(
+                    "now", [item[0] for item in my_units_lst],
+                    (90, 90))
+        # if len(my_units) > 0:
+        #     return actions.RAW_FUNCTIONS.Stop_quick(
+        #             "now", [item[0] for item in my_units_lst])
+        return actions.RAW_FUNCTIONS.no_op()
+
+
     def __init__(self):
         super(SmartAgent, self).__init__()
         self.previous_state = None
         self.previous_action = None
         self._move_back = True
+        self._dis_move_back = [True, True, True, True, True, True, True, True]
         self.score_cumulative_attack_last = 0
         self.score_cumulative_defense_last = 0
         self.score_cumulative_attack_now = 0
@@ -820,7 +1375,6 @@ class SmartAgent(Agent):
         self.end_game_frames = _STEP * _STEP_MUL
         self.end_game_state = 'Dogfall'
 
-
     def get_window_im(self, obs):
         my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
         enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
@@ -837,7 +1391,6 @@ class SmartAgent(Agent):
         # 窗口取值
         window_map = influence_map.T[left:right, top:bottom]
         return window_map
-
 
     def get_state(self, obs):
         my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
@@ -866,6 +1419,8 @@ class SmartAgent(Agent):
         # print(obs.observation.game_loop)
         unit_list_my = []
         if obs.first():
+            global _EPISODE_COUNT
+            _EPISODE_COUNT += 1
             # self.print_units_name(obs)
             unit_list_my = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
             unit_list_enemy = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
@@ -951,6 +1506,7 @@ class SmartAgent(Agent):
         self.previous_state = state
         self.previous_action = action
         # print(obs.observation['score_cumulative'])
+        # print()
 
         if obs.last():
             plt.close()
@@ -974,6 +1530,8 @@ class SmartAgent(Agent):
             self.qtable.q_table.to_csv(_GAME_QTABLE_PATH, header=True, index=True, sep=',')
             self.end_game_frames = _STEP * _STEP_MUL
             self.end_game_state = 'Dogfall'
+            if _EPISODE_COUNT == 2 or _EPISODE_COUNT % 10 == 0:
+                append_qtable_csv(_EPISODE_COUNT, self.qtable.q_table, self.actions)
         return getattr(self, action)(obs)
 
 
@@ -983,9 +1541,16 @@ def main(unused_argv):
     try:
         with sc2_env.SC2Env(
                 # map_name="MarineMicro",
-                map_name="MarineMicro_TNC_1",
-                # map_name="MarineMicro_MvsM_4",
+                # map_name="MarineMicro_TNC_1",
+                map_name="MarineMicro_MvsM_4",
+                # map_name="MarineMicro_MvsM_8",
+                # map_name="MarineMicro_MvsM_4_dist",
+                # map_name="MarineMicro_MvsM_8_dist",
+                # map_name="MarineMicro_MvsM_4_far",
+                # map_name="MarineMicro_MvsM_8_far",
                 # map_name="MarineMicro_ZvsM_4",
+                # map_name="MarineMicro_MvsM_8_dilemma",
+                # map_name="MarineMicro_MvsM_8_dilemma_2",
                 players=[sc2_env.Agent(sc2_env.Race.terran),
                          # sc2_env.Agent(sc2_env.Race.terran)],
                          # sc2_env.Bot(sc2_env.Race.zerg, sc2_env.Difficulty.very_easy)],

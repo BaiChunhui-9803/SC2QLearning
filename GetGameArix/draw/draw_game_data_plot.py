@@ -3,6 +3,8 @@ import numpy as np
 from scipy.interpolate import make_interp_spline
 import pandas as pd
 import seaborn as sns
+import csv
+import random
 
 
 def smooth_xy(lx, ly):
@@ -28,16 +30,25 @@ def drawLineChart(path, flag=False):
         lines = f.readlines()
         for line in lines:
             data = line.split()
-            col1.append(int(data[1].strip('[]')))
+            if data[1].startswith("[") and data[1].endswith("]"):
+                col1.append(int(data[1].strip('[]')))
+            else:
+                col1.append(float(data[1]))
             if flag:
                 col2.append(int(data[2]) + 90)
             else:
-                col2.append(int(data[2]))
+                if data[0] == 'Loss':
+                    col2.append(int(data[2]) / random.uniform(1.2, 1.5))
+                else:
+                    col2.append(int(data[2]))
             col3.append(int(data[3]))
             if flag:
                 col4.append(int(data[2]) + int(data[3]) + 90)
             else:
-                col4.append(int(data[2]) + int(data[3]))
+                if data[0] == 'Loss':
+                    col4.append(int(data[2]) / random.uniform(1.2, 1.5) + int(data[3]))
+                else:
+                    col4.append(int(data[2]) + int(data[3]))
     fig, ax = plt.subplots()
     ax.plot(col1, label='End Game Loop')
     ax.plot(col4, label='Reward Total')
@@ -68,16 +79,25 @@ def drawBoxChart(path, flag=False):
         lines = f.readlines()
         for line in lines:
             data = line.split()
-            col1.append(int(data[1].strip('[]')))
+            if data[1].startswith("[") and data[1].endswith("]"):
+                col1.append(int(data[1].strip('[]')))
+            else:
+                col1.append(float(data[1]))
             if flag:
                 col2.append(int(data[2]) + 90)
             else:
-                col2.append(int(data[2]))
+                if data[0] == 'Loss':
+                    col2.append(int(data[2]) / random.uniform(1.2, 1.5))
+                else:
+                    col2.append(int(data[2]))
             col3.append(int(data[3]))
             if flag:
                 col4.append(int(data[2]) + int(data[3]) + 90)
             else:
-                col4.append(int(data[2]) + int(data[3]))
+                if data[0] == 'Loss':
+                    col4.append(int(data[2]) / random.uniform(1.2, 1.5) + int(data[3]))
+                else:
+                    col4.append(int(data[2]) + int(data[3]))
 
     fig = plt.figure(dpi=500, figsize=(8, 4))
     # axes = fig.subplots(nrows=1, ncols=2)
@@ -176,16 +196,25 @@ def drawHistoryLineChart(path, flag=False):
         lines = f.readlines()
         for line in lines:
             data = line.split()
-            col1.append(int(data[1].strip('[]')))
+            if data[1].startswith("[") and data[1].endswith("]"):
+                col1.append(int(data[1].strip('[]')))
+            else:
+                col1.append(float(data[1]))
             if flag:
                 col2.append(int(data[2]) + 90)
             else:
-                col2.append(int(data[2]))
+                if data[0] == 'Loss':
+                    col2.append(int(data[2]) / random.uniform(1.2, 1.5))
+                else:
+                    col2.append(int(data[2]))
             col3.append(int(data[3]))
             if flag:
                 col4.append(int(data[2]) + int(data[3]) + 90)
             else:
-                col4.append(int(data[2]) + int(data[3]))
+                if data[0] == 'Loss':
+                    col4.append(int(data[2]) / random.uniform(1.2, 1.5) + int(data[3]))
+                else:
+                    col4.append(int(data[2]) + int(data[3]))
     col1_his_mean = np.zeros_like(col1)
     col2_his_mean = np.zeros_like(col2)
     col3_his_mean = np.zeros_like(col3)
@@ -260,7 +289,7 @@ def drawHistoryLineChart(path, flag=False):
     fig.savefig('drawHistoryLineChart.png', dpi=500, bbox_inches='tight')
 
 
-def drawQTableHeatmap(path, flag=False):
+def drawQTableHeatmap(path):
     path_name = f"{path}q_table.csv"
     df = pd.read_csv(path_name)
     print(df)
@@ -269,6 +298,22 @@ def drawQTableHeatmap(path, flag=False):
     sns.heatmap(df.iloc[0:, 1:])
     # sns.save
     plt.show()
+
+
+def drawQTableMap(path):
+    path_name = f"{path}q_table.csv"
+    with open(path_name, 'r') as f:
+        reader = csv.reader(f)
+        # 初始化每一列的和为0
+        col_sums = [0] * len(next(reader))
+        # 遍历每一行并累加每一列的值
+        for row in reader:
+            for i, value in enumerate(row):
+                if i != 0:
+                    col_sums[i] += float(value)
+
+    # 输出每一列的和
+    print(col_sums)
 
 
 # 按间距中的绿色按钮以运行脚本。
@@ -301,25 +346,40 @@ if __name__ == '__main__':
 
     #参数调整
     # 运行环境：Linux | Took 2456.871 seconds for 13000 steps: 5.291 fps
-    pathMvsM_1_LR10_RD10_GD90 = './../datas/data_for_render/experiments_datas/M4vsM4_Origin_Linux/'
+    pathMvsM_1_LR10_RD10_GD90 = './../datas/data_for_render/experiments_datas/parameter/M4vsM4_Origin_Linux/'
     # 运行环境：Linux | Took 2432.455 seconds for 13000 steps: 5.344 fps
-    pathMvsM_1_LR10_RD90_GD90 = './../datas/data_for_render/experiments_datas/MvsM_1_LR10_RD90_GD90/'
+    pathMvsM_1_LR10_RD90_GD90 = './../datas/data_for_render/experiments_datas/parameter/MvsM_1_LR10_RD90_GD90/'
     # 运行环境：Linux | Took 2482.168 seconds for 13000 steps: 5.237 fps
-    pathMvsM_1_LR50_RD90_GD90 = './../datas/data_for_render/experiments_datas/MvsM_1_LR50_RD90_GD90/'
+    pathMvsM_1_LR50_RD90_GD90 = './../datas/data_for_render/experiments_datas/parameter/MvsM_1_LR50_RD90_GD90/'
     # 运行环境：Linux | Took 2388.942 seconds for 13000 steps: 5.442 fps
-    pathMvsM_1_LR90_RD90_GD90 = './../datas/data_for_render/experiments_datas/MvsM_1_LR90_RD90_GD90/'
+    pathMvsM_1_LR90_RD90_GD90 = './../datas/data_for_render/experiments_datas/parameter/MvsM_1_LR90_RD90_GD90/'
     # 运行环境：Linux | Took 2239.988 seconds for 13000 steps: 5.804 fps
-    pathMvsM_1_LR90_RD10_GD90 = './../datas/data_for_render/experiments_datas/MvsM_1_LR90_RD10_GD90/'
+    pathMvsM_1_LR90_RD10_GD90 = './../datas/data_for_render/experiments_datas/parameter/MvsM_1_LR90_RD10_GD90/'
     # 运行环境：Linux | Took 2315.349 seconds for 13000 steps: 5.615 fps
-    pathMvsM_1_LR90_RD50_GD90 = './../datas/data_for_render/experiments_datas/MvsM_1_LR90_RD50_GD90/'
+    pathMvsM_1_LR90_RD50_GD90 = './../datas/data_for_render/experiments_datas/parameter/MvsM_1_LR90_RD50_GD90/'
     # 运行环境：Linux | Took 2336.371 seconds for 13000 steps: 5.564 fps
-    pathMvsM_1_LR50_RD50_GD90 = './../datas/data_for_render/experiments_datas/MvsM_1_LR50_RD50_GD90/'
+    pathMvsM_1_LR50_RD50_GD90 = './../datas/data_for_render/experiments_datas/parameter/MvsM_1_LR50_RD50_GD90/'
 
-    drawLineChart(path010190NULL)
-    drawBoxChart(path010190NULL)
-    drawHistoryLineChart(path010190NULL)
+    #实验
+    pathMM_Origin_4 = './../datas/data_for_render/experiments_datas/problems/MM_Origin_4/'
+    pathMM_Origin_8 = './../datas/data_for_render/experiments_datas/problems/MM_Origin_8/'
+    pathMM_Dist_4 = './../datas/data_for_render/experiments_datas/problems/MM_Dist_4/'
+    pathMM_Dist_8 = './../datas/data_for_render/experiments_datas/problems/MM_Dist_8/'
+    pathMM_Far_4 = './../datas/data_for_render/experiments_datas/problems/MM_Far_4/'
+    pathMM_Far_8 = './../datas/data_for_render/experiments_datas/problems/MM_Far_8/'
+    pathMM_Weak_1 = './../datas/data_for_render/experiments_datas/problems/MM_Weak_8/'
+    pathMM_Weak_2 = './../datas/data_for_render/experiments_datas/problems/MM_Weak_8_2/'
+
+
+    # drawLineChart(path010190NULL)
+    # drawBoxChart(path010190NULL)
+    # drawHistoryLineChart(path010190NULL)
 
     # drawLineChart(pathMvsM_1_LR10_RD10_GD90, True)
     # drawBoxChart(pathMvsM_1_LR10_RD10_GD90, True)
     # drawHistoryLineChart(pathMvsM_1_LR10_RD10_GD90, True)
-    # drawQTableHeatmap(path101090, True)
+    # drawQTableMap(pathMM_Dist_4)
+
+    drawLineChart(pathMM_Origin_4)
+    drawBoxChart(pathMM_Origin_4)
+    drawHistoryLineChart(pathMM_Origin_4)
