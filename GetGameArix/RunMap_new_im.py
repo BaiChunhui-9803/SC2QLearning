@@ -465,11 +465,11 @@ class Agent(base_agent.BaseAgent):
         "action_TFU",
         "action_TNC",
         # "action_TNU",
-        "action_greedy",
-        "action_DFC",
-        "action_DFU",
-        "action_DNC",
-        "action_DNU",
+        # "action_greedy",
+        # "action_DFC",
+        # "action_DFU",
+        # "action_DNC",
+        # "action_DNU",
         "action_retreat"
         # "action_noise"
     )
@@ -1542,12 +1542,12 @@ def main(unused_argv):
         with sc2_env.SC2Env(
                 # map_name="MarineMicro",
                 # map_name="MarineMicro_TNC_1",
-                map_name="MarineMicro_MvsM_4",
+                # map_name="MarineMicro_MvsM_4",
                 # map_name="MarineMicro_MvsM_8",
                 # map_name="MarineMicro_MvsM_4_dist",
                 # map_name="MarineMicro_MvsM_8_dist",
                 # map_name="MarineMicro_MvsM_4_far",
-                # map_name="MarineMicro_MvsM_8_far",
+                map_name="MarineMicro_MvsM_8_far",
                 # map_name="MarineMicro_ZvsM_4",
                 # map_name="MarineMicro_MvsM_8_dilemma",
                 # map_name="MarineMicro_MvsM_8_dilemma_2",
