@@ -71,6 +71,7 @@ def drawLineChart(path, flag=False):
 
 
 def drawBoxChart(path, flag=False):
+    col0 = []
     col1 = []
     col2 = []
     col3 = []
@@ -79,6 +80,7 @@ def drawBoxChart(path, flag=False):
         lines = f.readlines()
         for line in lines:
             data = line.split()
+            col0.append(data[0])
             if data[1].startswith("[") and data[1].endswith("]"):
                 col1.append(int(data[1].strip('[]')))
             else:
@@ -120,6 +122,16 @@ def drawBoxChart(path, flag=False):
     df_RA = pd.DataFrame({'0-20%/': col2[:number], '80-100% Reward Attack': col2[-number:]})
     df_RD = pd.DataFrame({'0-20%/': col3[:number], '80-100% Reward Defense': col3[-number:]})
     df_RT = pd.DataFrame({'0-20%/': col4[:number], '80-100% Reward Total': col4[-number:]})
+    print(col0.count('Win') / len(col0), col0[:number].count('Win') / len(col0[:number]), col0[-number:].count('Win') / len(col0[-number:]),
+          "{:.2%}".format((col0[-number:].count('Win') / len(col0[-number:]) - col0[:number].count('Win') / len(col0[:number])) / (col0[:number].count('Win') / len(col0[:number]))))
+    print(sum(col1) / len(col1), sum(col1[:number]) / len(col1[:number]), sum(col1[-number:]) / len(col1[-number:]),
+          "{:.2%}".format((sum(col1[-number:]) / len(col1[-number:]) - sum(col1[:number]) / len(col1[:number])) / (sum(col1[:number]) / len(col1[:number]))))
+    print(sum(col2) / len(col2), sum(col2[:number]) / len(col2[:number]), sum(col2[-number:]) / len(col2[-number:]),
+          "{:.2%}".format((sum(col2[-number:]) / len(col2[-number:]) - sum(col2[:number]) / len(col2[:number])) / (sum(col2[:number]) / len(col2[:number]))))
+    print(sum(col3) / len(col3), sum(col3[:number]) / len(col3[:number]), sum(col3[-number:]) / len(col3[-number:]),
+          "{:.2%}".format((sum(col3[-number:]) / len(col3[-number:]) - sum(col3[:number]) / len(col3[:number])) / (sum(col3[:number]) / len(col3[:number]))))
+    print(sum(col4) / len(col4), sum(col4[:number]) / len(col4[:number]), sum(col4[-number:]) / len(col4[-number:]),
+          "{:.2%}".format((sum(col4[-number:]) / len(col4[-number:]) - sum(col4[:number]) / len(col4[:number])) / (sum(col4[:number]) / len(col4[:number]))))
     # plt.title("First 20% of Training Episodes")
     face_colors = ['pink', 'lightsteelblue']
     edge_colors = ['r', 'b']
@@ -370,6 +382,28 @@ if __name__ == '__main__':
     pathMM_Weak_1 = './../datas/data_for_render/experiments_datas/problems/MM_Weak_8/'
     pathMM_Weak_2 = './../datas/data_for_render/experiments_datas/problems/MM_Weak_8_2/'
 
+    # 改进实验
+    path_PC_MM_4 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_4/'
+    path_PC_MM_8 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_8/'
+    path_PC_MM_Far_4 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_4/'
+    path_PC_MM_Far_8 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8/'
+    path_PC_MM_Far_8_2 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_2/'
+    path_PC_MM_Far_8_3 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_3/'
+    path_PC_MM_Far_8_4 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_4/'
+    path_PC_MM_Dist_8 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Dist_8/'
+    path_PC_MM_Weak_8 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Weak_8/'
+
+    # 改进实验2
+    path_SA_MM_Far_8 = './../datas/data_for_render/experiments_datas/state_area_100/MM_Far_8/'
+    path_SA_MM_Far_8_2 = './../datas/data_for_render/experiments_datas/state_area_100/MM_Far_8_2/'
+
+    # 改进实验3
+    path_PC_MM_Far_8_e = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_e/'
+    path_PC_MM_Far_8_e_2 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_e_2/'
+    path_PC_MM_Weak2_8_e = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Weak2_8_e/'
+
+    #测试问题
+    path_MM_Problem1 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Problem1/'
 
     # drawLineChart(path010190NULL)
     # drawBoxChart(path010190NULL)
@@ -380,6 +414,6 @@ if __name__ == '__main__':
     # drawHistoryLineChart(pathMvsM_1_LR10_RD10_GD90, True)
     # drawQTableMap(pathMM_Dist_4)
 
-    drawLineChart(pathMM_Origin_4)
-    drawBoxChart(pathMM_Origin_4)
-    drawHistoryLineChart(pathMM_Origin_4)
+    drawLineChart(path_MM_Problem1)
+    drawBoxChart(path_MM_Problem1)
+    drawHistoryLineChart(path_MM_Problem1)
