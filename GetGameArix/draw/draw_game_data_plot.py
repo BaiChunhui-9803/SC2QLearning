@@ -300,6 +300,38 @@ def drawHistoryLineChart(path, flag=False):
     fig.tight_layout()
     fig.savefig('drawHistoryLineChart.png', dpi=500, bbox_inches='tight')
 
+def drawActionLogLineChart(path):
+    with open(path + 'action_log.csv', 'r') as file:
+        content = file.read()
+
+    # 将内容按行分割，并转换为二维列表
+    lines = content.split("\n")
+    matrix = [list(line) for line in lines]
+
+    # 计算每组相邻行之间同列数值相同的元素的个数
+    result = []
+    for row in range(1, len(matrix) - 1):
+        count = 0
+        for col in range(len(matrix[0])):
+            # print(row, col)
+            if matrix[row][col] == matrix[row - 1][col]:
+                count += 1
+        result.append(count)
+    result_his_mean = np.zeros_like(result)
+    for i in range(1, len(result) + 1):
+        result_his_mean[i - 1] = np.mean(result[:i])
+    col1_global_mean = np.mean(result)
+
+    fig = plt.figure(dpi=500, figsize=(8, 4))
+    plt.plot(range(len(result)), result, c='lavender', linewidth=3, label='Num of Overlapping Action')
+    plt.plot(range(len(result_his_mean)), result_his_mean, c='mediumblue', label='History Mean')
+    plt.legend(loc='best')
+    # plt.grid(True)  # 显示网格线
+    plt.title('Degree of Overlapping Temporal Proximity Action')
+    plt.xlabel('Game Episode')
+    plt.ylabel('Num of Overlapping Temporal Proximity Action')
+    fig.savefig('drawActionLogLineChart.png', dpi=500, bbox_inches='tight')
+    # print(result)
 
 def drawQTableHeatmap(path):
     path_name = f"{path}q_table.csv"
@@ -405,6 +437,13 @@ if __name__ == '__main__':
     #测试问题
     path_MM_Problem1 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Problem1/'
 
+    # 改进实验：双层模型
+    path_TL_MM_8 = './../datas/data_for_render/experiments_datas/two-layer/MM_8/'
+    path_TL_MM_8_dist = './../datas/data_for_render/experiments_datas/two-layer/MM_8_dist/'
+    path_TL_MM_8_far = './../datas/data_for_render/experiments_datas/two-layer/MM_8_far/'
+    path_TL_MM_8_problem1 = './../datas/data_for_render/experiments_datas/two-layer/MM_8_problem1/'
+    path_TL_MM_4_dist = './../datas/data_for_render/experiments_datas/two-layer/MM_4_dist/'
+    path_TL_MM_8_problem1_2 = './../datas/data_for_render/experiments_datas/two-layer/MM_8_problem1_2/'
     # drawLineChart(path010190NULL)
     # drawBoxChart(path010190NULL)
     # drawHistoryLineChart(path010190NULL)
@@ -414,6 +453,7 @@ if __name__ == '__main__':
     # drawHistoryLineChart(pathMvsM_1_LR10_RD10_GD90, True)
     # drawQTableMap(pathMM_Dist_4)
 
-    drawLineChart(path_MM_Problem1)
-    drawBoxChart(path_MM_Problem1)
-    drawHistoryLineChart(path_MM_Problem1)
+    drawLineChart(path_TL_MM_8_problem1_2)
+    drawBoxChart(path_TL_MM_8_problem1_2)
+    drawHistoryLineChart(path_TL_MM_8_problem1_2)
+    drawActionLogLineChart(path_TL_MM_8_problem1_2)

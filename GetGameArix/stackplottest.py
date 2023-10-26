@@ -155,6 +155,35 @@ def fun4(path):
     ax.set_title('Action Selection Trends')
     fig.savefig('drawAllStackedChart.png', dpi=500, bbox_inches='tight')
 
+def fun5(path):
+    path_name = f"{path}episode_q_table.csv"
+    data = pd.read_csv(path_name, header=None, skiprows=[0])
+    print(data)
+    # 对正负值进行归一化
+    for index, row in data.iterrows():
+        min_val = min(row)
+        max_val = max(row)
+        for j in range(len(row)):
+            row[j] = (float(row[j]) - float(min_val)) / (float(max_val) - float(min_val))
+        total = sum(row)
+        for j in range(len(row)):
+            row[j] = float(row[j]) / float(total)
+    # 绘制堆叠柱状图
+    fig, ax = plt.subplots(figsize=(7, 5))
+    ax.bar(data.index, data[0], label='action_kmeans_000')
+    ax.bar(data.index, data[1], bottom=data[0], label='action_kmeans_025')
+    ax.bar(data.index, data[2], bottom=data[[0, 1]].sum(axis=1), label='action_kmeans_050')
+    ax.bar(data.index, data[3], bottom=data[[0, 1, 2]].sum(axis=1), label='action_kmeans_075')
+    ax.bar(data.index, data[4], bottom=data[[0, 1, 2, 3]].sum(axis=1), label='action_kmeans_100')
+
+    # 添加图例和标签
+    plt.legend(loc='upper left', bbox_to_anchor=(1.0, 1.0))
+    plt.tight_layout()
+    ax.set_xlabel('Number of Samples')
+    ax.set_ylabel('Action Ratios')
+    ax.set_title('Action Selection Trends')
+    fig.savefig('drawAllStackedChart.png', dpi=500, bbox_inches='tight')
+
 
 MM_Origin_4 = "datas/data_for_render/experiments_datas/problems/MM_Origin_4/"
 MM_Origin_8 = "datas/data_for_render/experiments_datas/problems/MM_Origin_8/"
@@ -176,7 +205,16 @@ path_PC_MM_Far_8_4 = 'datas/data_for_render/experiments_datas/parametric_cluster
 path_PC_MM_Dist_8 = 'datas/data_for_render/experiments_datas/parametric_clustering/MM_Dist_8/'
 path_PC_MM_Weak_8 = 'datas/data_for_render/experiments_datas/parametric_clustering/MM_Weak_8/'
 
+# 双层模型
+path_TL_MM_8 = 'datas/data_for_render/experiments_datas/two-layer/MM_8/'
+path_TL_MM_8_dist = 'datas/data_for_render/experiments_datas/two-layer/MM_8_dist/'
+path_TL_MM_8_far = 'datas/data_for_render/experiments_datas/two-layer/MM_8_far/'
+path_TL_MM_8_problem1 = 'datas/data_for_render/experiments_datas/two-layer/MM_8_problem1/'
+path_TL_MM_4_dist = 'datas/data_for_render/experiments_datas/two-layer/MM_4_dist/'
+path_TL_MM_8_problem1_2 = 'datas/data_for_render/experiments_datas/two-layer/MM_8_problem1_2/'
+
 # fun1(MM_Origin_4)
 # fun3(MM_Origin_4)
-fun4(path_PC_MM_Far_8)
+# fun4(path_TL_MM_8)
+fun5(path_TL_MM_8_problem1_2)
 # plt.show()

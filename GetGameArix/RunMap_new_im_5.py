@@ -67,8 +67,27 @@ _UNITS_LIST_PATH = "datas/data_for_overall/units_list.csv"
 _UNITS_INFORMATION_PATH = "datas/data_for_render/units_dataframe.csv"
 _GAME_RESULT_PATH = "datas/data_for_transit/game_result.txt"
 _GAME_QTABLE_PATH = "datas/data_for_transit/q_table.csv"
+_GAME_CLUS_PATH = "datas/data_for_transit/clusters.csv"
+_GAME_ACTION_LOG_PATH = "datas/data_for_transit/action_log.csv"
+_GAME_SUB_QTABLE_PATH = "datas/data_for_transit/sub_q_table"
 _EPISODE_QTABLE_PATH = "datas/data_for_transit/episode_q_table.csv"
 
+
+def save_dataframes_to_csv(dataframes_dict, folder):
+    # print(dataframes_dict.items())
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    for key, df in dataframes_dict.items():
+        filepath = os.path.join(folder, f"{key}.csv")
+        if os.path.exists(filepath):
+            # 如果文件已存在，则将数据追加到现有文件中
+            df.q_table.to_csv(filepath, mode='w', header=True, index=True, sep=',')
+        else:
+            # 如果文件不存在，则创建新文件并保存数据
+            df.q_table.to_csv(filepath, index=True)
+
+        # print(f"DataFrame '{key}' saved to {filepath}")
 
 """
 2023-10-23
@@ -101,10 +120,15 @@ def calculate_std_deviation(numbers):
 
 # 计算变异系数
 def calculate_coefficient_of_variation(numbers):
-    mean = sum(numbers) / len(numbers)
-    std_deviation = calculate_std_deviation(numbers)  # 使用前面提到的计算标准差的函数
-    coefficient_of_variation = (std_deviation / mean)
-    return coefficient_of_variation
+    if len(numbers) > 1:
+        mean = sum(numbers) / len(numbers)
+        if mean == 0.0:
+            return 0.0
+        std_deviation = calculate_std_deviation(numbers)  # 使用前面提到的计算标准差的函数
+        coefficient_of_variation = (std_deviation / mean)
+        return coefficient_of_variation
+    else:
+        return 0.0
 
 # 圆中散点均匀度（圆心到点距离的崎岖程度）
 def calculate_clu_uniformity(my_units_lst: list):
@@ -112,12 +136,15 @@ def calculate_clu_uniformity(my_units_lst: list):
     distances = []
     uniformity = 0.
     if len(my_units_lst):
-        for point in my_units_lst:
-            x = point[1]
-            y = point[2]
-            distance = math.sqrt((x - center_point[0]) ** 2 + (y - center_point[1]) ** 2)
-            distances.append(distance)
-        uniformity = 1. - calculate_coefficient_of_variation(distances)
+        if len(my_units_lst) == 1:
+            return uniformity
+        else:
+            for point in my_units_lst:
+                x = point[1]
+                y = point[2]
+                distance = math.sqrt((x - center_point[0]) ** 2 + (y - center_point[1]) ** 2)
+                distances.append(distance)
+            uniformity = 1. - calculate_coefficient_of_variation(distances)
     else:
         uniformity = 0.
     return round(uniformity, 2)
@@ -125,23 +152,31 @@ def calculate_clu_uniformity(my_units_lst: list):
 # 圆中散点拥挤度
 def calculate_clu_crowding(my_units_lst: list, min_radius):
     center_point, radius = circle_fitting(my_units_lst, 0.)
-    total_points = len(my_units_lst)
-    total_distance = 0
-    crowding = 0.
-    if len(my_units_lst):
-        for i in range(total_points):
-            min_distance = float('inf')
-            for j in range(total_points):
-                if i != j:
-                    d = distance((my_units_lst[i][1], my_units_lst[i][2]), (my_units_lst[j][1], my_units_lst[j][2]))
-                    if d < min_distance:
-                        min_distance = d
-            total_distance += min_distance
-        max_distance = 2 * total_points * radius * math.sin(math.pi / total_points)
-        crowding = 1. - total_distance / max_distance
+    if radius == 0.0:
+        return 1.0
     else:
+        total_points = len(my_units_lst)
+        total_distance = 0
         crowding = 0.
-    return round(crowding, 2)
+        if len(my_units_lst):
+            if len(my_units_lst) == 1:
+                return 1.0
+            else:
+                for i in range(total_points):
+                    min_distance = float('inf')
+                    for j in range(total_points):
+                        if i != j:
+                            d = distance((my_units_lst[i][1], my_units_lst[i][2]),
+                                         (my_units_lst[j][1], my_units_lst[j][2]))
+                            if d < min_distance:
+                                min_distance = d
+                    total_distance += min_distance
+                max_distance = 2 * total_points * radius * math.sin(math.pi / total_points)
+                # print(my_units_lst)
+                crowding = 1. - total_distance / max_distance
+        else:
+            crowding = 0.
+        return round(crowding, 2)
 
 # 簇/点间坐标方差之和 - 度量簇/点分布聚拢度
 def calculate_variance_sum(my_units_lst: list):
@@ -414,36 +449,28 @@ def calc_avg_distance(points, centers):
         sum_dist += min_dist
     return sum_dist / len(points)
 
+from sklearn.cluster import KMeans
 # 将A类和B类坐标点分别聚类
-def kmeans(points_a, points_b, k_a, k_b):
-    # 初始化聚类中心
-    # print('a', points_a, k_a)
-    # print('b', points_b, k_b)
-    if len(points_a) > 0 and len(points_b) > 0:
-        centers_a = random.sample(points_a, k_a)
-        centers_b = random.sample(points_b, k_b)
-    else:
-        return [], [], []
-    # 迭代聚类过程
-    for i in range(10):
-        # 分配聚类
-        clusters_a = assign_clusters(points_a, centers_a)
-        clusters_b = assign_clusters(points_b, centers_b)
-        # 计算聚类中心
-        centers_a = calc_centers(clusters_a)
-        centers_b = calc_centers(clusters_b)
-    # 对A类坐标点进行最近距离的匹配
-    matches = []
-    for cluster_a in clusters_a:
-        for point_a in cluster_a:
-            min_dist = float('inf')
-            min_point_b = None
-            for point_b in points_b:
-                if distance_units(point_a, point_b) < min_dist:
-                    min_dist = distance_units(point_a, point_b)
-                    min_point_b = point_b
-            matches.append((point_a, min_point_b))
-    return clusters_a, clusters_b, matches
+def kmeans(my_units_lst, k):
+    # 将坐标点转换为特征向量
+    # print(len(my_units_lst))
+    X = []
+    for point in my_units_lst:
+        X.append(point[1:])
+
+    # 创建KMeans对象并进行聚类
+    kmeans = KMeans(n_clusters=k, n_init='auto')
+    kmeans.fit(X)
+
+    # 获取聚类结果
+    labels = kmeans.predict(X)
+
+    # 返回每个点的坐标以及对应的聚类标签
+    clustered_points = []
+    for i in range(len(my_units_lst)):
+        clustered_points.append(my_units_lst[i] + (labels[i],))
+
+    return clustered_points
 
 # def array_to_pil_img(arr: np.ndarray, check_flag=False):
 #     norm = mcolors.TwoSlopeNorm(vmin=_MIN_INFLUENCE, vmax=_MAX_INFLUENCE, vcenter=0.0)
@@ -474,6 +501,7 @@ class QLearningTable:
         # print(state_index)
         # print(self.q_table)
         if np.random.uniform() < e_greedy:
+            # print(observation)
             state_action = self.q_table.loc[observation, :]
             action = np.random.choice(
                 state_action[state_action == np.max(state_action)].index)
@@ -501,6 +529,7 @@ class QLearningTable:
         self.check_state_exist(s_)
         # print(state_index)
         # print(state_index)
+        # print(self.q_table)
         # print(self.q_table)
         q_predict = self.q_table.loc[s, a]
         if s_ != 'terminal':
@@ -563,13 +592,22 @@ class Agent(base_agent.BaseAgent):
         "k_means_000",
         "k_means_025",
         "k_means_050",
+        "k_means_075",
         "k_means_100"
     )
 
     actions = (
+        "action_ATK_nearest",
+        "action_ATK_nearest_weakest",
+        "action_MIX_lure",
+        "action_MIX_gather"
         # "do_nothing",
-        "action_TFC_000",
-        "action_greedy"
+        # "action_"
+        # "action_TFC_000",
+        # "action_TFU_000",
+        # "action_TNC_000",
+        # "action_TNU_000",
+        # "action_greedy"
         # "action_DFC",
         # "action_DFU",
         # "action_DNC",
@@ -681,7 +719,7 @@ class Agent(base_agent.BaseAgent):
 class SmartAgent(Agent):
     def draw_units(self):
         unit_my_list, unit_enemy_list = self.get_units_list(_UNITS_ATTRIBUTE_PATH)
-        print(unit_my_list, unit_enemy_list)
+        # print(unit_my_list, unit_enemy_list)
         influence_map = self.get_influence_map(unit_my_list, unit_enemy_list)
         top, bottom, left, right = self.get_map_boundary(influence_map, _BOUNDARY_WIDTH)
         # 生成目标点
@@ -854,7 +892,9 @@ class SmartAgent(Agent):
         sub_table_tag = (clu_lists[0], clu_lists[1])
         if not self.check_sub_table_exist(sub_table_tag):
             self.sub_clusters_qtable_list.update({sub_table_tag: QLearningTable(self.actions)})
-        print(self.sub_clusters_qtable_list)
+            self.previous_combat_state.update({sub_table_tag: None})
+            self.previous_combat_action.update({sub_table_tag: None})
+        # print(self.sub_clusters_qtable_list)
 
 
     # 聚类力度为0，即不进行聚类，簇数=单位数
@@ -868,7 +908,7 @@ class SmartAgent(Agent):
             # print(clu_uniformity)
             # clu_crowding = calculate_clu_crowding(my_units_lst, _UNIT_RADIUS)
             clu_variance = calculate_variance_sum(my_units_lst)
-            clu_lists[1] = round(clu_variance, 2)
+            clu_lists[1] = round(clu_variance, 1)
             for i in range(clu_number):
                 clu_lists[2].append((
                     # 簇id
@@ -876,27 +916,156 @@ class SmartAgent(Agent):
                     # 簇中心
                     (my_units_lst[i][1], my_units_lst[i][2]),
                     # 簇内均匀度
-                    1.0,
-                    # 簇内拥挤度
                     0.0,
+                    # 簇内拥挤度
+                    1.0,
                     # 簇内单位列表
                     [my_units_lst[i]]
                 ))
-            self.update_sub_clusters_qtable_list(clu_lists)
-            print(clu_lists)
-        return 0
+        self.update_sub_clusters_qtable_list(clu_lists)
+        # print(clu_lists)
+        return clu_lists
+
+    def k_means_025(self, obs):
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
+        clu_number = 1
+        clu_lists = [clu_number, 0., []]
+        if len(my_units_lst) * 0.25 > 1:
+            clu_number = int(len(my_units_lst) * 0.25)
+            clu_lists[0] = clu_number
+        if len(my_units_lst) > 0:
+            clusters = kmeans(my_units_lst, clu_number)
+            # clu_number = len(clusters)
+            # print(clusters)
+            clu_center_list = []
+            unique_labels = set([cluster[-1] for cluster in clusters])
+            for label in unique_labels:
+                cluster_points = [cluster[:-1] for cluster in clusters if cluster[-1] == label]  # 获取具有相同聚类标签的坐标点
+                clu_uniformity = calculate_clu_uniformity(cluster_points)
+                clu_crowding = calculate_clu_crowding(cluster_points, _UNIT_RADIUS)
+                clu_0_center, clu_0_radius = circle_fitting(cluster_points, 0.)
+                clu_center_list.append((0, clu_0_center[0], clu_0_center[1]))
+                clu_lists[2].append((
+                    # 簇id
+                    label,
+                    # 簇中心
+                    clu_0_center,
+                    # 簇内均匀度
+                    clu_uniformity,
+                    # 簇内拥挤度
+                    clu_crowding,
+                    # 簇内单位列表
+                    cluster_points
+                ))
+            clu_variance = calculate_variance_sum(clu_center_list)
+            clu_lists[1] = round(clu_variance, 1)
+        self.update_sub_clusters_qtable_list(clu_lists)
+        # print(clu_lists[2])
+        return clu_lists
+
+    def k_means_050(self, obs):
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
+        clu_number = 1
+        clu_lists = [clu_number, 0., []]
+        if len(my_units_lst) * 0.5 > 1:
+            clu_number = int(len(my_units_lst) * 0.5)
+            clu_lists[0] = clu_number
+        if len(my_units_lst) > 0:
+            clusters = kmeans(my_units_lst, clu_number)
+            # clu_number = len(clusters)
+            # print(clusters)
+            clu_center_list = []
+            unique_labels = set([cluster[-1] for cluster in clusters])
+            for label in unique_labels:
+                cluster_points = [cluster[:-1] for cluster in clusters if cluster[-1] == label]  # 获取具有相同聚类标签的坐标点
+                clu_uniformity = calculate_clu_uniformity(cluster_points)
+                clu_crowding = calculate_clu_crowding(cluster_points, _UNIT_RADIUS)
+                clu_0_center, clu_0_radius = circle_fitting(cluster_points, 0.)
+                clu_center_list.append((0, clu_0_center[0], clu_0_center[1]))
+                clu_lists[2].append((
+                    # 簇id
+                    label,
+                    # 簇中心
+                    clu_0_center,
+                    # 簇内均匀度
+                    clu_uniformity,
+                    # 簇内拥挤度
+                    clu_crowding,
+                    # 簇内单位列表
+                    cluster_points
+                ))
+            clu_variance = calculate_variance_sum(clu_center_list)
+            clu_lists[1] = round(clu_variance, 1)
+        self.update_sub_clusters_qtable_list(clu_lists)
+        # print(clu_lists[2])
+        return clu_lists
+
+    def k_means_075(self, obs):
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
+        clu_number = 1
+        clu_lists = [clu_number, 0., []]
+        if len(my_units_lst) * 0.75 > 1:
+            clu_number = int(len(my_units_lst) * 0.75)
+            clu_lists[0] = clu_number
+        if len(my_units_lst) > 0:
+            clusters = kmeans(my_units_lst, clu_number)
+            # clu_number = len(clusters)
+            # print(clusters)
+            clu_center_list = []
+            unique_labels = set([cluster[-1] for cluster in clusters])
+            for label in unique_labels:
+                cluster_points = [cluster[:-1] for cluster in clusters if cluster[-1] == label]  # 获取具有相同聚类标签的坐标点
+                clu_uniformity = calculate_clu_uniformity(cluster_points)
+                clu_crowding = calculate_clu_crowding(cluster_points, _UNIT_RADIUS)
+                clu_0_center, clu_0_radius = circle_fitting(cluster_points, 0.)
+                clu_center_list.append((0, clu_0_center[0], clu_0_center[1]))
+                clu_lists[2].append((
+                    # 簇id
+                    label,
+                    # 簇中心
+                    clu_0_center,
+                    # 簇内均匀度
+                    clu_uniformity,
+                    # 簇内拥挤度
+                    clu_crowding,
+                    # 簇内单位列表
+                    cluster_points
+                ))
+            clu_variance = calculate_variance_sum(clu_center_list)
+            clu_lists[1] = round(clu_variance, 1)
+        self.update_sub_clusters_qtable_list(clu_lists)
+        # print(clu_lists[2])
+        return clu_lists
 
     def k_means_100(self, obs):
         my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
         my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        clu_lists = []
+        clu_number = 1
+        clu_variance = 0.
+        clu_lists = [clu_number, clu_variance, []]
         if len(my_units_lst) > 0:
-            clu_number = 1
             clu_uniformity = calculate_clu_uniformity(my_units_lst)
             clu_crowding = calculate_clu_crowding(my_units_lst, _UNIT_RADIUS)
-            print(clu_uniformity, clu_crowding)
-            clu_lists.append(([my_units_lst], clu_number, clu_uniformity, clu_crowding))
-        return 0
+            clu_0_center, clu_0_radius = circle_fitting(my_units_lst, 0.)
+            clu_lists[2].append((
+                # 簇id
+                0,
+                # 簇中心
+                clu_0_center,
+                # 簇内均匀度
+                clu_uniformity,
+                # 簇内拥挤度
+                clu_crowding,
+                # 簇内单位列表
+                my_units_lst
+            ))
+        # print(clu_lists)
+        self.update_sub_clusters_qtable_list(clu_lists)
+        # clu_lists.append(([my_units_lst], clu_number, clu_uniformity, clu_crowding))
+        return clu_lists
 
 
     # def k_means_clustering(self, points, k, threshold):
@@ -1065,6 +1234,7 @@ class SmartAgent(Agent):
     #                 "queued", my_units_tag_lst, (self._backup_target_map[0], self._backup_target_map[1])))
     #         return self.action_lst
     #     return actions.RAW_FUNCTIONS.no_op()
+
     def action_TNC_000(self, obs):
         # print('action_TNC')
         """
@@ -1170,1222 +1340,6 @@ class SmartAgent(Agent):
         #     return self.action_lst
         return actions.RAW_FUNCTIONS.no_op()
 
-    def action_TFC_025(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) * 0.25 > 1:
-            clusters_a_num = int(len(my_units_lst) * 0.25)
-        if len(enemy_units_lst) * 0.25 > 1:
-            clusters_b_num = int(len(enemy_units_lst) * 0.25)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                self.action_lst.append(actions.RAW_FUNCTIONS.Attack_pt(
-                    "now", clusters_a[k][i][0],
-                    (enemy_cluster_units_lst[i][1], enemy_cluster_units_lst[i][2])))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     if len(clusters_a[k]) > 0:
-            #         self.action_queue.append('Smart_pt')
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
-            #             "now", [item[0] for item in clusters_a[k]], enemy_mp))
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(my_mp))
-            #         return self.action_lst
-            # return actions.RAW_FUNCTIONS.no_op()
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
-    def action_TFU_025(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) * 0.25 > 1:
-            clusters_a_num = int(len(my_units_lst) * 0.25)
-        if len(enemy_units_lst) * 0.25 > 1:
-            clusters_b_num = int(len(enemy_units_lst) * 0.25)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                self.action_lst.append(actions.RAW_FUNCTIONS.Attack_unit(
-                    "now", clusters_a[k][i][0],
-                    enemy_cluster_units_lst[i][0]))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     for i in range(len(clusters_a[k])):
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
-            #             "now", clusters_a[k][i][0],
-            #             enemy_cluster_units_lst[i][0]))
-            #     return self.action_lst
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
-    def action_TNC_025(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) * 0.25 > 1:
-            clusters_a_num = int(len(my_units_lst) * 0.25)
-        if len(enemy_units_lst) * 0.25 > 1:
-            clusters_b_num = int(len(enemy_units_lst) * 0.25)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                 self.action_lst.append(actions.RAW_FUNCTIONS.Attack_pt(
-                     "now", clusters_a[k][i][0],
-                     (enemy_cluster_units_lst[i][1], enemy_cluster_units_lst[i][2])))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     if len(clusters_a[k]) > 0:
-            #         self.action_queue.append('Smart_pt')
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
-            #             "now", [item[0] for item in clusters_a[k]], enemy_mp))
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(my_mp))
-            #         return self.action_lst
-            # return actions.RAW_FUNCTIONS.no_op()
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
-    def action_TNU_025(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) * 0.25 > 1:
-            clusters_a_num = int(len(my_units_lst) * 0.25)
-        if len(enemy_units_lst) * 0.25 > 1:
-            clusters_b_num = int(len(enemy_units_lst) * 0.25)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                self.action_lst.append(actions.RAW_FUNCTIONS.Attack_unit(
-                    "now", clusters_a[k][i][0],
-                    enemy_cluster_units_lst[i][0]))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     for i in range(len(clusters_a[k])):
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
-            #             "now", clusters_a[k][i][0],
-            #             enemy_cluster_units_lst[i][0]))
-            #     return self.action_lst
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
-    def action_TFC_050(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) * 0.5 > 1:
-            clusters_a_num = int(len(my_units_lst) * 0.5)
-        if len(enemy_units_lst) * 0.5 > 1:
-            clusters_b_num = int(len(enemy_units_lst) * 0.5)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                self.action_lst.append(actions.RAW_FUNCTIONS.Attack_pt(
-                    "now", clusters_a[k][i][0],
-                    (enemy_cluster_units_lst[i][1], enemy_cluster_units_lst[i][2])))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     if len(clusters_a[k]) > 0:
-            #         self.action_queue.append('Smart_pt')
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
-            #             "now", [item[0] for item in clusters_a[k]], enemy_mp))
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(my_mp))
-            #         return self.action_lst
-            # return actions.RAW_FUNCTIONS.no_op()
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
-    def action_TFU_050(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) * 0.5 > 1:
-            clusters_a_num = int(len(my_units_lst) * 0.5)
-        if len(enemy_units_lst) * 0.5 > 1:
-            clusters_b_num = int(len(enemy_units_lst) * 0.5)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                self.action_lst.append(actions.RAW_FUNCTIONS.Attack_unit(
-                    "now", clusters_a[k][i][0],
-                    enemy_cluster_units_lst[i][0]))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     for i in range(len(clusters_a[k])):
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
-            #             "now", clusters_a[k][i][0],
-            #             enemy_cluster_units_lst[i][0]))
-            #     return self.action_lst
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
-    def action_TNC_050(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) * 0.5 > 1:
-            clusters_a_num = int(len(my_units_lst) * 0.5)
-        if len(enemy_units_lst) * 0.5 > 1:
-            clusters_b_num = int(len(enemy_units_lst) * 0.5)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                 self.action_lst.append(actions.RAW_FUNCTIONS.Attack_pt(
-                     "now", clusters_a[k][i][0],
-                     (enemy_cluster_units_lst[i][1], enemy_cluster_units_lst[i][2])))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     if len(clusters_a[k]) > 0:
-            #         self.action_queue.append('Smart_pt')
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
-            #             "now", [item[0] for item in clusters_a[k]], enemy_mp))
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(my_mp))
-            #         return self.action_lst
-            # return actions.RAW_FUNCTIONS.no_op()
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
-    def action_TNU_050(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) * 0.5 > 1:
-            clusters_a_num = int(len(my_units_lst) * 0.5)
-        if len(enemy_units_lst) * 0.5 > 1:
-            clusters_b_num = int(len(enemy_units_lst) * 0.5)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                self.action_lst.append(actions.RAW_FUNCTIONS.Attack_unit(
-                    "now", clusters_a[k][i][0],
-                    enemy_cluster_units_lst[i][0]))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     for i in range(len(clusters_a[k])):
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
-            #             "now", clusters_a[k][i][0],
-            #             enemy_cluster_units_lst[i][0]))
-            #     return self.action_lst
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
-    def action_TFC_075(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) * 0.75 > 1:
-            clusters_a_num = int(len(my_units_lst) * 0.75)
-        if len(enemy_units_lst) * 0.75 > 1:
-            clusters_b_num = int(len(enemy_units_lst) * 0.75)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                self.action_lst.append(actions.RAW_FUNCTIONS.Attack_pt(
-                    "now", clusters_a[k][i][0],
-                    (enemy_cluster_units_lst[i][1], enemy_cluster_units_lst[i][2])))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     if len(clusters_a[k]) > 0:
-            #         self.action_queue.append('Smart_pt')
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
-            #             "now", [item[0] for item in clusters_a[k]], enemy_mp))
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(my_mp))
-            #         return self.action_lst
-            # return actions.RAW_FUNCTIONS.no_op()
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
-    def action_TFU_075(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) * 0.75 > 1:
-            clusters_a_num = int(len(my_units_lst) * 0.75)
-        if len(enemy_units_lst) * 0.75 > 1:
-            clusters_b_num = int(len(enemy_units_lst) * 0.75)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                self.action_lst.append(actions.RAW_FUNCTIONS.Attack_unit(
-                    "now", clusters_a[k][i][0],
-                    enemy_cluster_units_lst[i][0]))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     for i in range(len(clusters_a[k])):
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
-            #             "now", clusters_a[k][i][0],
-            #             enemy_cluster_units_lst[i][0]))
-            #     return self.action_lst
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
-    def action_TNC_075(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) * 0.75 > 1:
-            clusters_a_num = int(len(my_units_lst) * 0.75)
-        if len(enemy_units_lst) * 0.75 > 1:
-            clusters_b_num = int(len(enemy_units_lst) * 0.75)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                 self.action_lst.append(actions.RAW_FUNCTIONS.Attack_pt(
-                     "now", clusters_a[k][i][0],
-                     (enemy_cluster_units_lst[i][1], enemy_cluster_units_lst[i][2])))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     if len(clusters_a[k]) > 0:
-            #         self.action_queue.append('Smart_pt')
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
-            #             "now", [item[0] for item in clusters_a[k]], enemy_mp))
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(my_mp))
-            #         return self.action_lst
-            # return actions.RAW_FUNCTIONS.no_op()
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
-    def action_TNU_075(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) * 0.75 > 1:
-            clusters_a_num = int(len(my_units_lst) * 0.75)
-        if len(enemy_units_lst) * 0.75 > 1:
-            clusters_b_num = int(len(enemy_units_lst) * 0.75)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                self.action_lst.append(actions.RAW_FUNCTIONS.Attack_unit(
-                    "now", clusters_a[k][i][0],
-                    enemy_cluster_units_lst[i][0]))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     for i in range(len(clusters_a[k])):
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
-            #             "now", clusters_a[k][i][0],
-            #             enemy_cluster_units_lst[i][0]))
-            #     return self.action_lst
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
-    def action_TFC_100(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) > 1:
-            clusters_a_num = len(my_units_lst)
-        if len(enemy_units_lst) > 1:
-            clusters_b_num = len(enemy_units_lst)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                self.action_lst.append(actions.RAW_FUNCTIONS.Attack_pt(
-                    "now", clusters_a[k][i][0],
-                    (enemy_cluster_units_lst[i][1], enemy_cluster_units_lst[i][2])))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     if len(clusters_a[k]) > 0:
-            #         self.action_queue.append('Smart_pt')
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
-            #             "now", [item[0] for item in clusters_a[k]], enemy_mp))
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(my_mp))
-            #         return self.action_lst
-            # return actions.RAW_FUNCTIONS.no_op()
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
-    def action_TFU_100(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) > 1:
-            clusters_a_num = len(my_units_lst)
-        if len(enemy_units_lst) > 1:
-            clusters_b_num = len(enemy_units_lst)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                self.action_lst.append(actions.RAW_FUNCTIONS.Attack_unit(
-                    "now", clusters_a[k][i][0],
-                    enemy_cluster_units_lst[i][0]))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     for i in range(len(clusters_a[k])):
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
-            #             "now", clusters_a[k][i][0],
-            #             enemy_cluster_units_lst[i][0]))
-            #     return self.action_lst
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
-    def action_TNC_100(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) > 1:
-            clusters_a_num = len(my_units_lst)
-        if len(enemy_units_lst) > 1:
-            clusters_b_num = len(enemy_units_lst)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                 self.action_lst.append(actions.RAW_FUNCTIONS.Attack_pt(
-                     "now", clusters_a[k][i][0],
-                     (enemy_cluster_units_lst[i][1], enemy_cluster_units_lst[i][2])))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     if len(clusters_a[k]) > 0:
-            #         self.action_queue.append('Smart_pt')
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
-            #             "now", [item[0] for item in clusters_a[k]], enemy_mp))
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(my_mp))
-            #         return self.action_lst
-            # return actions.RAW_FUNCTIONS.no_op()
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
-    def action_TNU_100(self, obs):
-        """
-        D: disperse, 所有单位分散并聚类
-        F: far, 远离目标区域
-        C: center, 目标区域选定为敌方中心区域
-        :param obs:
-        :return:
-        """
-        # 有bug
-        self.action_lst = []
-        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
-        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
-        # my_clusters = self.k_means_clustering(my_units_lst, 10, 1)
-        # enemy_clusters = self.k_means_clustering(enemy_units_lst, 10, 1)
-        clusters_a_num = 1
-        clusters_b_num = 1
-        if len(my_units_lst) > 1:
-            clusters_a_num = len(my_units_lst)
-        if len(enemy_units_lst) > 1:
-            clusters_b_num = len(enemy_units_lst)
-        clusters_a, clusters_b, matches = kmeans(my_units_lst, enemy_units_lst, clusters_a_num, clusters_b_num)
-        # print('my_units_lst', my_units)
-        # print('my_clusters', clusters_a)
-        # print('enemy_clusters', clusters_b)
-        # print('matchs:')
-        # for match in matches:
-        #     print(f'{match[0]} 匹配 {match[1]}')
-        # print(matches)
-        for k in range(len(clusters_a)):
-            # print(cluster)
-            # print(my_mp)
-            enemy_cluster_units_lst = []
-            for unit in clusters_a[k]:
-                for match in matches:
-                    # print(match)
-                    # print(cluster)
-                    if match[0][0] == unit[0]:
-                        enemy_cluster_units_lst.append(match[1])
-
-            my_mp = self.get_center_position_point(clusters_a[k])
-            enemy_mp = self.get_center_position_point(enemy_cluster_units_lst)
-            # if not self._dis_move_back[k]:
-            self.action_queue.append('Attack_unit')
-            for i in range(len(clusters_a[k])):
-                self.action_lst.append(actions.RAW_FUNCTIONS.Attack_unit(
-                    "now", clusters_a[k][i][0],
-                    enemy_cluster_units_lst[i][0]))
-            return self.action_lst
-            # else:
-            #     dis = distance(my_mp, self._backup_target_map)
-            #     if dis < 5:
-            #         self._dis_move_back[k] = False
-            #         # print(self._dis_move_back)
-            #     for i in range(len(clusters_a[k])):
-            #         self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
-            #             "now", clusters_a[k][i][0],
-            #             enemy_cluster_units_lst[i][0]))
-            #     return self.action_lst
-        return actions.RAW_FUNCTIONS.no_op()
-
-            # print('my_cluster_units_lst', my_cluster_units_lst)
-            # print('enemy_cluster_units_lst', enemy_cluster_units_lst)
-            # min_dist = float('inf')
-            # min_idx = -1
-            # for j in range(clusters_num):
-            #     enemy_list = clusters_b[j]
-            #     ememy_mp = self.get_center_position_point(enemy_list)
-            #     if distance(my_mp, ememy_mp) < min_dist:
-            #         min_dist = distance(my_mp, ememy_mp)
-            #         min_idx = j
-            # print(clusters_b[min_idx], min_dist)
-            # enemy_cluster_units_lst = clusters_b[i]
-
     def action_greedy(self, obs):
         my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
         my_units_lst = sorted([(item['tag'], item['weapon_cooldown']) for item in my_units], key=lambda x: x[0])
@@ -2421,11 +1375,92 @@ class SmartAgent(Agent):
         #             "now", [item[0] for item in my_units_lst])
         return actions.RAW_FUNCTIONS.no_op()
 
+    def action_ATK_nearest(self, obs):
+        self.action_lst = []
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units], key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
+        if len(my_units) > 0 and len(enemy_units) > 0:
+            for unit in my_units_lst:
+                self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
+                    "now", unit[0], self.get_nearest_enemy((unit[1], unit[2]), enemy_units)))
+            # self.action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(mp))
+            return self.action_lst
+        return actions.RAW_FUNCTIONS.no_op()
+
+    def action_ATK_nearest_weakest(self, obs):
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units], key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
+        if len(my_units) > 0 and len(enemy_units) > 0:
+            return actions.RAW_FUNCTIONS.Smart_unit(
+                "now", [item[0] for item in my_units_lst], self.choice_nearest_weakest_enemy(mp, enemy_units))
+        return actions.RAW_FUNCTIONS.no_op()
+
+    def action_MIX_gather(self, obs):
+        self.action_lst = []
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units],
+                              key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
+        if len(my_units) > 0 and len(enemy_units) > 0:
+            for clu in self.cluster_result[2]:
+                # clu[3]为簇内拥挤度
+                if clu[3] < 0.4:
+                    self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
+                        "now", [unit[0] for unit in clu[4]], clu[1]))
+            for unit in my_units_lst:
+                self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
+                    "now", unit[0], self.get_nearest_enemy((unit[1], unit[2]), enemy_units)))
+            # self.action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(mp))
+            return self.action_lst
+        return actions.RAW_FUNCTIONS.no_op()
+
+    def action_MIX_lure(self, obs):
+        self.action_lst = []
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units],
+                              key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
+        ep = self.get_center_position(obs, 'Enemy', _ENEMY_UNIT_TYPE_ARG)
+        if len(my_units) > 0 and len(enemy_units) > 0:
+            separation_unit_list = []
+            except_unit_tag = 0
+            for clu in self.cluster_result[2]:
+                # clu[2]为簇内均匀度
+                if clu[2] < 0.4:
+                    for unit in clu[4]:
+                        separation_unit_list.append((unit, distance((unit[1], unit[2]), ep)))
+            if len(separation_unit_list) > 1:
+                sorted_list = sorted(separation_unit_list, key=lambda x: x[1])
+                except_unit_tag = sorted_list[0][0][0]
+                self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
+                    "now", except_unit_tag, ep))
+            else:
+                except_unit_tag = self.get_nearest_enemy(ep, my_units)
+                self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
+                    "now", except_unit_tag, ep))
+            for unit in my_units_lst:
+                if unit[0] != except_unit_tag:
+                    self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
+                        "now", unit[0], mp))
+            return self.action_lst
+        return actions.RAW_FUNCTIONS.no_op()
+
 
     def __init__(self):
         super(SmartAgent, self).__init__()
-        self.previous_state = None
-        self.previous_action = None
+        # self.previous_state = None
+        # self.previous_action = None
+        self.previous_clu_state = None
+        self.previous_clu_action = None
+        self.previous_combat_state = {}
+        self.previous_combat_action = {}
+        self.cluster_result = None
         self._move_back = True
         self._dis_move_back = [True, True, True, True, True, True, True, True]
         self.action_lst = []
@@ -2442,6 +1477,8 @@ class SmartAgent(Agent):
         self.end_game_state = 'Dogfall'
         self.clusters_qtable = QLearningTable(self.clusters)
         self.sub_clusters_qtable_list = {}
+        self.sub_clusters_qtable_tag = None
+        self.previous_sub_tag = None
         # self.qtable = QLearningTable(self.actions)
         self.new_game()
 
@@ -2485,6 +1522,32 @@ class SmartAgent(Agent):
         hash = getHash(array_to_pil_img(window_map))
         # print('hash', hash)
         return hash
+
+    def code_state_clu(self, cluster_list):
+        mapped = ""
+        if len(cluster_list) > 0:
+            for item in cluster_list:
+                mapped += '{:01X}'.format(int(item[0] * 15.9))
+                mapped += '{:01X}'.format(int(item[1] * 15.9))
+            # print(mapped)
+            return mapped
+        else:
+            return "X"
+
+    def get_state_clu(self, cluster_result):
+        cluster_list = [(item[2], item[3]) for item in cluster_result[2]]
+        result = self.code_state_clu(cluster_list)
+        # print(result)
+        return result
+
+    def print_cluster_result(self, cluster_result):
+        with open(_GAME_CLUS_PATH, "r+") as file:
+            existing_data = file.read()
+            for item in cluster_result[2]:
+                result = (len(item[4]),[(x[1], x[2]) for x in item[4]], item[2], item[3])
+                if str(result) not in existing_data:
+                    file.write(str(result) + "\n")
+
 
     def step(self, obs):
         super(SmartAgent, self).step(obs)
@@ -2536,15 +1599,25 @@ class SmartAgent(Agent):
         # array_to_pil_img(self.get_window_im(obs), True)
         # array_to_pil_img(self.get_window_im(obs), False)
 
-        state = str(self.get_state(obs))
+        state_im = str(self.get_state(obs))
         # state = len(state_vec)
         # !!!!!!!
         # action = self.actions[2]
-        getattr(self, self.clusters[0])(obs)
+        cluster_item = self.clusters_qtable.choose_action(state_im, 1 - 0.5 / math.sqrt(_EPISODE_COUNT - 1))
+        cluster_result = getattr(self, cluster_item)(obs)
+        self.cluster_result = cluster_result
+        self.print_cluster_result(cluster_result)
         # print(self.clusters[0])
         # if _EPISODE_COUNT < 400:
         # todo
-        action = self.actions[0]
+        # macro_action_item = self.actions[0]
+        self.sub_clusters_qtable_tag = (cluster_result[0], cluster_result[1])
+        state_clu = self.get_state_clu(cluster_result)
+        # print(self.sub_clusters_qtable_tag, self.sub_clusters_qtable_list)
+        combat_action_item = self.sub_clusters_qtable_list[self.sub_clusters_qtable_tag].choose_action(state_clu, 1 - 0.5 / math.sqrt(_EPISODE_COUNT - 1))
+        with open(_GAME_ACTION_LOG_PATH, "a") as file:
+            file.write(str(self.clusters.index(cluster_item)) + str(self.actions.index(combat_action_item) + 3))
+
         # action = self.qtable.choose_action(state, 1 - 0.5 / math.sqrt(_EPISODE_COUNT - 1))
         # else:
             # action = self.qtable.choose_best_action(state)
@@ -2574,19 +1647,29 @@ class SmartAgent(Agent):
         # print(obs.reward)
         # print(self.previous_action, reward_cumulative)
         # todo
-        # if self.previous_action is not None:
-        #     self.qtable.learn(self.previous_state,
-        #                       self.previous_action,
-        #                       # obs.reward,
-        #                       reward_cumulative,
-        #                       'terminal' if obs.last() else state)
+        if self.previous_clu_action is not None:
+            self.clusters_qtable.learn(self.previous_clu_state,
+                              self.previous_clu_action,
+                              # obs.reward,
+                              reward_cumulative,
+                              'terminal' if obs.last() else state_im)
+
+        if self.previous_combat_action[self.sub_clusters_qtable_tag] is not None:
+            self.sub_clusters_qtable_list[self.sub_clusters_qtable_tag].learn(self.previous_combat_state[self.sub_clusters_qtable_tag],
+                              self.previous_combat_action[self.sub_clusters_qtable_tag],
+                              # obs.reward,
+                              reward_cumulative,
+                              'terminal' if obs.last() else state_clu)
 
         # print(obs.observation['score_cumulative'])
         # print(self.qtable.q_table)
         # print('observation', dir(obs.observation))
         # print(obs.score_by_category, obs.score_by_vital, obs.score_cumulative)
-        self.previous_state = state
-        self.previous_action = action
+        self.previous_clu_state = state_im
+        self.previous_clu_action = cluster_item
+        self.previous_sub_tag = self.sub_clusters_qtable_tag
+        self.previous_combat_state[self.sub_clusters_qtable_tag] = state_clu
+        self.previous_combat_action[self.sub_clusters_qtable_tag] = combat_action_item
         # print(obs.observation['score_cumulative'])
         # print()
 
@@ -2610,15 +1693,23 @@ class SmartAgent(Agent):
             # print(self.qtable.q_table)
             # print(self.end_game_state, self.end_game_frames)
             # todo
-            # self.qtable.q_table.to_csv(_GAME_QTABLE_PATH, header=True, index=True, sep=',')
-            # self.end_game_frames = _STEP * _STEP_MUL
-            # self.end_game_state = 'Dogfall'
-            # if _EPISODE_COUNT == 2 or _EPISODE_COUNT % 10 == 0:
-            #     append_qtable_csv(_EPISODE_COUNT, self.qtable.q_table, self.actions)
-        return getattr(self, action)(obs)
+            self.clusters_qtable.q_table.to_csv(_GAME_QTABLE_PATH, header=True, index=True, sep=',')
+            self.end_game_frames = _STEP * _STEP_MUL
+            self.end_game_state = 'Dogfall'
+            # todo
+            with open(_GAME_ACTION_LOG_PATH, "a") as file:
+                file.write('\n')
+            if _EPISODE_COUNT == 2 or _EPISODE_COUNT % 10 == 0:
+                append_qtable_csv(_EPISODE_COUNT, self.clusters_qtable.q_table, self.actions)
+                save_dataframes_to_csv(self.sub_clusters_qtable_list, _GAME_SUB_QTABLE_PATH)
+        return getattr(self, combat_action_item)(obs)
 
 
 def main(unused_argv):
+    with open(_GAME_CLUS_PATH, 'w') as file:
+        file.write("")
+    with open(_GAME_ACTION_LOG_PATH, "a") as file:
+        file.write("")
     steps = _STEP
     step_mul = _STEP_MUL
     try:
@@ -2634,11 +1725,11 @@ def main(unused_argv):
                 # map_name="MarineMicro_ZvsM_4",
                 # map_name="MarineMicro_MvsM_8_dilemma",
                 # map_name="MarineMicro_MvsM_8_dilemma_2",
-                # map_name="MarineMicro_MvsM_Problem1",
+                map_name="MarineMicro_MvsM_Problem1",
                 # map_name="4_clu_uni_0",
                 # map_name="4_clu_uni_0_5",
                 # map_name="4_clu_uni_1",
-                map_name="4_clu_uni_2",
+                # map_name="4_clu_uni_2",
                 players=[sc2_env.Agent(sc2_env.Race.terran),
                          # sc2_env.Agent(sc2_env.Race.terran)],
                          # sc2_env.Bot(sc2_env.Race.zerg, sc2_env.Difficulty.very_easy)],
