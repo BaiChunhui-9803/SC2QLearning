@@ -7,6 +7,9 @@ import csv
 import random
 from pyecharts import options as opts
 from pyecharts.charts import Scatter, Timeline, Tab
+from pyecharts.faker import Faker
+from pyecharts.commons.utils import JsCode
+import json
 
 def get_point_boundry(point_list):
     x_min = point_list[0][0]
@@ -198,6 +201,168 @@ def drawClustersResult_unit8(path):
         tab.render("drawClustersResult.html")
 
 
+tag_list = []
+def update_tag_list(unit_list):
+    for unit in unit_list:
+        if unit[0] in tag_list:
+            pass
+        else:
+            tag_list.append(unit[0])
+
+def drawClustersHealthResult(path):
+    tab = Tab()
+    for file_id in range(1, 50):
+        if file_id == 1 or file_id % 10 == 0:
+            file_name = str(file_id) + '.csv'
+            file_path = path + 'sub_episode/'
+            with open(file_path + file_name, 'r') as f:
+                lines = f.readlines()
+                step_list = []
+                cluster_list = []
+                for line_index, line in enumerate(lines):
+                    if line.startswith("step") and not lines[line_index + 1].strip('\t').startswith("cluster_-1"):
+                        step_list.append(line_index)
+                    if line.strip('\t').startswith("cluster_"):
+                        if line.strip('\t').startswith("cluster_-1") and lines[line_index - 1].startswith("step"):
+                            pass
+                        else:
+                            cluster_list.append(line_index)
+                game_dict = {}
+                for step_index, item in enumerate(step_list):
+                    if step_index == len(step_list) - 1:
+                        game_dict[lines[item].strip("step[]\n").zfill(3)] = {'line': item, 'nline': 500}
+                    else:
+                        game_dict[lines[item].strip("step[]\n").zfill(3)] = {'line': item,
+                                                                             'nline': step_list[step_index + 1]}
+                # print(game_dict)
+                for i, line in enumerate(cluster_list):
+                    for key, value in game_dict.items():
+                        if line >= value['line'] and line <= value['nline']:
+                            count = len(value) - 2
+                            value['c{}_line'.format(count)] = line
+                    game_dict = dict(sorted(game_dict.items(), key=lambda x: x[0]))
+                for key, value in game_dict.items():
+                    value['c-1_line'] = value.pop('c{}_line'.format(len(value) - 3))
+                    value.pop('nline')
+                for step_key, step_value in game_dict.items():
+                    for cluster_key, cluster_value in step_value.items():
+                        if cluster_key.startswith('c'):
+                            step_value[cluster_key] = [tuple(map(int, substr.split(','))) for substr in
+                                                       lines[cluster_value + 1].strip('\t\n').split(';') if substr]
+                            update_tag_list(step_value[cluster_key])
+                figsise = opts.InitOpts(width='650px', height='650px')
+                tl = Timeline(init_opts=figsise)
+                for step_key, step_value in game_dict.items():
+                    x_data = [t[1] for sublist in step_value.values() if isinstance(sublist, list) for t in sublist]
+                    y_data = [t[2] for sublist in step_value.values() if isinstance(sublist, list) for t in sublist]
+                    point_data = sorted([(t[0], t[1], t[2]) for sublist in step_value.values() if isinstance(sublist, list) for t in sublist], key=lambda x: x[0])
+                    y_list = []
+                    clusters_health_dict = {}
+                    for cluster_key, cluster_value in step_value.items():
+                        if cluster_key.startswith('c'):
+                            clusters_health_dict[cluster_key.strip('c_line')] = round(
+                                sum(item[4] for item in cluster_value) / len(cluster_value) / 255.0 if len(cluster_value) > 0 else 0, 2)
+                            for point in cluster_value:
+                                y_list.append([point[2], point[0], point[3], int(cluster_key.strip('c_line'))])
+                    x_list = [x[1] for x in point_data]
+                    # print(y_list)
+                    complete_list = []
+                    for tag in tag_list:
+                        found = False
+                        for item in y_list:
+                            if item[1] == tag:
+                                complete_list.append(item)
+                                found = True
+                                break
+                        if not found:
+                            complete_list.append([0, tag, 0, -5])
+                    new_y_list = sorted(complete_list, key=lambda x: x[1])
+                    print(new_y_list)
+                    positive_sum = 0
+                    positive_count = 0
+                    negative_sum = 0
+                    negative_count = 0
+                    for key, value in clusters_health_dict.items():
+                        if float(key) >= 0:
+                            positive_sum += float(value)
+                            positive_count += 1
+                        else:
+                            negative_sum += float(value)
+                            negative_count += 1
+                    positive_mean = round(positive_sum / positive_count if positive_count > 0 else 0, 2)
+                    negative_mean = round(negative_sum / negative_count if negative_count > 0 else 0, 2)
+                    game_health_dict = {'self_units': positive_mean, 'enemy_units': negative_mean}
+                    x_min = min(x_data)
+                    x_max = max(x_data)
+                    y_min = min(y_data)
+                    y_max = max(y_data)
+                    scatter = (
+                        Scatter()
+                            .add_xaxis(xaxis_data=x_list)
+                            .add_yaxis(
+                            series_name="",
+                            y_axis=new_y_list,
+                            symbol_size=25,
+                            label_opts=opts.LabelOpts(
+                                formatter=JsCode(
+                                    "function(params){return params.value[3]+'('+params.value[0]+','+params.value[1]+'):'+params.value[2];}"
+                                )),
+                            )
+                            .set_series_opts(
+                            itemstyle_opts=opts.ItemStyleOpts(opacity=1)
+                            )
+                            .set_global_opts(
+                            xaxis_opts=opts.AxisOpts(
+                                type_="value",
+                                splitline_opts=opts.SplitLineOpts(is_show=True),
+                                axislabel_opts=opts.LabelOpts(interval=0),
+                                min_=x_min - 1,
+                                max_=x_max + 1
+                            ),
+                            yaxis_opts=opts.AxisOpts(
+                                type_="value",
+                                axislabel_opts=opts.LabelOpts(interval=0),
+                                splitline_opts=opts.SplitLineOpts(is_show=True),
+                                min_=y_min - 1,
+                                max_=y_max + 1
+                            ),
+                            visualmap_opts=opts.VisualMapOpts(
+                                type_="color", max_=len(step_value.keys()) - 2, min_=-1, dimension=4
+                            ),
+                            title_opts=opts.TitleOpts(
+                                title=json.dumps(game_health_dict).strip('\{\}').replace('"', ""),
+                                subtitle=json.dumps(clusters_health_dict).strip('\{\}').replace('"', ""),
+                                pos_top='0%',  # 标题的垂直位置
+                                pos_left='center',  # 标题的水平位置
+                                title_textstyle_opts=opts.TextStyleOpts(
+                                    font_size=16,  # 标题的字体大小
+                                    font_weight='bold'  # 标题的字体粗细
+                                ),
+                                subtitle_textstyle_opts=opts.TextStyleOpts(
+                                    font_size=16,  # 副标题的字体大小
+                                    color='red',  # 副标题的颜色
+                                    font_weight='bold'  # 标题的字体粗细
+                                )
+                            )
+                        )
+                    )
+                    tl.add(scatter, "step{}".format(step_key))
+                tl.add_schema(
+                    # is_auto_play=True,  # 自动播放
+                    play_interval=3000,  # 播放间隔，单位为毫秒
+                    # pos_left='0%',  # Timeline的水平位置
+                    # pos_bottom='5%',  # Timeline的垂直位置
+                    # width='90%',  # Timeline的宽度
+                    # label_opts=opts.LabelOpts(
+                    #     is_show=True,  # 是否显示标签
+                    #     color='black',  # 标签的颜色
+                    #     font_size=12  # 标签的字体大小
+                    # )
+                )
+                tab.add(tl, "{}".format(file_id))
+    tab.render("drawClustersHealthResult.html")
+
+
 
 # 按间距中的绿色按钮以运行脚本。
 if __name__ == '__main__':
@@ -208,4 +373,6 @@ if __name__ == '__main__':
     path_TL_MM_4_dist = './../datas/data_for_render/experiments_datas/two-layer/MM_4_dist/'
     path_TL_MM_8_problem1_2 = './../datas/data_for_render/experiments_datas/two-layer/MM_8_problem1_2/'
     # drawClustersResult_unit4(path_MM_8)
-    drawClustersResult_unit8(path_TL_MM_8_problem1_2)
+
+    # drawClustersResult_unit8(path_TL_MM_8_problem1_2)
+    drawClustersHealthResult(path_TL_MM_8_far)

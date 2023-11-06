@@ -1,3 +1,4 @@
 ,action_ATK_nearest,action_ATK_nearest_weakest,action_MIX_lure,action_MIX_gather
-0F0F0F,0.0,-1.8,0.0,0.0
-FF0FC3,0.0,0.0,0.0,0.0
+C90F0F,0.0,0.30000000000000004,0.0,0.0
+0F0F0F,0.0,0.0,0.0,-1.2000000000000002
+B6C30F,0.0,0.0,0.0,0.0
