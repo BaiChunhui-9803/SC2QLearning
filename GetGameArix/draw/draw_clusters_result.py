@@ -211,7 +211,7 @@ def update_tag_list(unit_list):
 
 def drawClustersHealthResult(path):
     tab = Tab()
-    for file_id in range(1, 50):
+    for file_id in range(1, 500):
         if file_id == 1 or file_id % 10 == 0:
             file_name = str(file_id) + '.csv'
             file_path = path + 'sub_episode/'
@@ -265,8 +265,8 @@ def drawClustersHealthResult(path):
                             for point in cluster_value:
                                 y_list.append([point[2], point[0], point[3], int(cluster_key.strip('c_line'))])
                     x_list = [x[1] for x in point_data]
-                    # print(y_list)
                     complete_list = []
+                    none_tag_list = []
                     for tag in tag_list:
                         found = False
                         for item in y_list:
@@ -275,9 +275,14 @@ def drawClustersHealthResult(path):
                                 found = True
                                 break
                         if not found:
-                            complete_list.append([0, tag, 0, -5])
+                            complete_list.append([0, tag, 99, -5])
+                            none_tag_list.append(tag)
                     new_y_list = sorted(complete_list, key=lambda x: x[1])
-                    print(new_y_list)
+                    add_x_list = []
+                    for tag in none_tag_list:
+                        add_x_list.append([unit[1] for unit in new_y_list].index(tag))
+                    for index in sorted(add_x_list):
+                        x_list.insert(index, 0)
                     positive_sum = 0
                     positive_count = 0
                     negative_sum = 0
@@ -305,7 +310,7 @@ def drawClustersHealthResult(path):
                             symbol_size=25,
                             label_opts=opts.LabelOpts(
                                 formatter=JsCode(
-                                    "function(params){return params.value[3]+'('+params.value[0]+','+params.value[1]+'):'+params.value[2];}"
+                                    "function(params){return '('+params.value[0]+','+params.value[1]+'):'+params.value[3];}"
                                 )),
                             )
                             .set_series_opts(
