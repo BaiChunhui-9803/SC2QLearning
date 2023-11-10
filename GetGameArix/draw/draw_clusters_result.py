@@ -206,7 +206,8 @@ def drawClustersResult_unit8(path):
 
 
 tag_list = []
-
+my_tag_list = []
+enemy_tag_list = []
 
 def update_tag_list(unit_list):
     for unit in unit_list:
@@ -214,6 +215,20 @@ def update_tag_list(unit_list):
             pass
         else:
             tag_list.append(unit[0])
+
+def update_my_tag_list(unit_list):
+    for unit in unit_list:
+        if unit[0] in my_tag_list:
+            pass
+        else:
+            my_tag_list.append(unit[0])
+
+def update_enemy_tag_list(unit_list):
+    for unit in unit_list:
+        if unit[0] in enemy_tag_list:
+            pass
+        else:
+            enemy_tag_list.append(unit[0])
 
 
 def drawClustersHealthResult(path):
@@ -254,14 +269,25 @@ def drawClustersHealthResult(path):
                 for step_key, step_value in game_dict.items():
                     for cluster_key, cluster_value in step_value.items():
                         if cluster_key.startswith('c'):
-                            step_value[cluster_key] = [tuple(map(int, substr.split(','))) for substr in
-                                                       lines[cluster_value + 1].strip('\t\n').split(';') if substr]
-                            update_tag_list(step_value[cluster_key])
+                            if cluster_key.startswith("c-1"):
+                                # print([tuple(map(int, substr.split(','))) for substr in lines[cluster_value + 1].strip('\t\n').split(';') if substr])
+                                step_value[cluster_key] = [tuple(map(int, substr.split(','))) for substr in lines[cluster_value + 1].strip('\t\n').split(';') if substr]
+                                update_tag_list(step_value[cluster_key])
+                                update_enemy_tag_list(step_value[cluster_key])
+                            else:
+                                step_value[cluster_key] = [tuple(map(int, substr.split(','))) for substr in
+                                                           lines[cluster_value + 1].strip('\t\n').split(';') if substr]
+                                update_tag_list(step_value[cluster_key])
+                                update_my_tag_list(step_value[cluster_key])
+                # print(my_tag_list)
+                # print(enemy_tag_list)
                 figsise = opts.InitOpts(width='1550px', height='650px')
                 tl = Timeline(init_opts=figsise)
                 grid_x_list = []
                 grid_y1_list = []
                 grid_y2_list = []
+                grid_y3_list = []
+                grid_y4_list = []
                 for step_key, step_value in game_dict.items():
                     grid_x_list.append(step_key)
                     x_data = [t[1] for sublist in step_value.values() if isinstance(sublist, list) for t in sublist]
@@ -289,29 +315,51 @@ def drawClustersHealthResult(path):
                                 found = True
                                 break
                         if not found:
-                            complete_list.append([0, tag, 99, -5])
-                            none_tag_list.append(tag)
+                            # if
+                            # print(y_list)
+                            if item[1] in my_tag_list:
+                                complete_list.append([0, tag, 0, -3])
+                                none_tag_list.append(tag)
+                            if item[1] in enemy_tag_list:
+                                complete_list.append([0, tag, 0, -4])
+                                none_tag_list.append(tag)
                     new_y_list = sorted(complete_list, key=lambda x: x[1])
                     add_x_list = []
                     for tag in none_tag_list:
                         add_x_list.append([unit[1] for unit in new_y_list].index(tag))
                     for index in sorted(add_x_list):
                         x_list.insert(index, 0)
-                    positive_sum = 0
-                    positive_count = 0
-                    negative_sum = 0
-                    negative_count = 0
-                    for key, value in clusters_health_dict.items():
-                        if float(key) >= 0:
-                            positive_sum += float(value)
-                            positive_count += 1
-                        else:
-                            negative_sum += float(value)
-                            negative_count += 1
+                    positive_list = [point[2] for point in new_y_list if point[3] >= 0]
+                    positive_sum = sum(positive_list)
+                    positive_count = len(positive_list)
+                    negative_list = [point[2] for point in new_y_list if point[3] == -1]
+                    negative_sum = sum(negative_list)
+                    negative_count = len(negative_list)
+                    positive_live_list = [point[2] for point in new_y_list if point[3] >= 0 and point[2] > 0]
+                    # print(positive_live_list)
+                    # print(positive_list)
+                    positive_live_sum = sum(positive_live_list)
+                    positive_live_count = len(my_tag_list)
+                    negative_live_list = [point[2] for point in new_y_list if point[3] == -1 and point[2] > 0]
+                    negative_live_sum = sum(negative_live_list)
+                    negative_live_count = len(enemy_tag_list)
+                    # print(new_y_list)
+                    # for key, value in clusters_health_dict.items():
+                    #     print(key, value)
+                    #     if float(key) >= 0:
+                    #         positive_sum += float(value)
+                    #         positive_count += 1
+                    #     else:
+                    #         negative_sum += float(value)
+                    #         negative_count += 1
                     positive_mean = round(positive_sum / positive_count if positive_count > 0 else 0, 2)
                     grid_y1_list.append(positive_mean)
                     negative_mean = round(negative_sum / negative_count if negative_count > 0 else 0, 2)
                     grid_y2_list.append(negative_mean)
+                    positive_live_mean = round(positive_live_sum / positive_live_count if positive_live_count > 0 else 0, 2)
+                    grid_y3_list.append(positive_live_mean)
+                    negative_live_mean = round(negative_live_sum / negative_live_count if negative_live_count > 0 else 0, 2)
+                    grid_y4_list.append(negative_live_mean)
                     game_health_dict = {'self_units': positive_mean, 'enemy_units': negative_mean}
                     x_min = min(x_data)
                     x_max = max(x_data)
@@ -375,21 +423,45 @@ def drawClustersHealthResult(path):
                     line = (
                         Line()
                             .add_xaxis(grid_x_list)
-                            .add_yaxis("我方单位", grid_y1_list, is_smooth=True,
-                                       symbol='circle',
+                            .add_yaxis("selfliveHm", grid_y1_list, is_smooth=True,
+                                       symbol='',
                                        linestyle_opts=opts.LineStyleOpts(color="red"),
                                        itemstyle_opts=opts.ItemStyleOpts(color="red", color0="red",
                                                                          border_color="red"),
-                                       label_opts=opts.LabelOpts(is_show=True, color="red")
+                                       label_opts=opts.LabelOpts(is_show=False, color="red")
                                        # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='red')
                                        )
-                            .add_yaxis("敌方单位", grid_y2_list, is_smooth=True,
-                                       symbol='circle',
+                            .add_yaxis("enemyliveHm", grid_y2_list, is_smooth=True,
+                                       symbol='',
                                        linestyle_opts=opts.LineStyleOpts(color="blue"),
                                        itemstyle_opts=opts.ItemStyleOpts(color="blue", color0="blue",
                                                                          border_color="blue"),
-                                       label_opts=opts.LabelOpts(is_show=True, color="blue")
+                                       label_opts=opts.LabelOpts(is_show=False, color="blue")
                                        # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='blue')
+                                       )
+                            .add_yaxis("selfHm", grid_y3_list, is_smooth=True,
+                                       symbol='',
+                                       linestyle_opts=opts.LineStyleOpts(color="pink"),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="pink", color0="pink",
+                                                                         border_color="pink"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="pink")
+                                       # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='red')
+                                       )
+                            .add_yaxis("enemyHm", grid_y4_list, is_smooth=True,
+                                       symbol='',
+                                       linestyle_opts=opts.LineStyleOpts(color="skyblue"),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="skyblue", color0="skyblue",
+                                                                         border_color="skyblue"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="skyblue")
+                                       # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='blue')
+                                       )
+                            .add_yaxis("selfHm-enemyHm", [x - y for x, y in zip(grid_y3_list, grid_y4_list)], is_smooth=True,
+                                       symbol='',
+                                       linestyle_opts=opts.LineStyleOpts(color="green"),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="green", color0="green",
+                                                                         border_color="green"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="green"),
+                                       areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='green')
                                        )
                             # .set_series_opts(
                             # areastyle_opts=opts.AreaStyleOpts(opacity=0.5),
@@ -441,4 +513,4 @@ if __name__ == '__main__':
     # drawClustersResult_unit4(path_MM_8)
 
     # drawClustersResult_unit8(path_TL_MM_8_problem1_2)
-    drawClustersHealthResult(path_TL_MM_8_far)
+    drawClustersHealthResult(path_TL_MM_8)
