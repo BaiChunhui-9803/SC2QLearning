@@ -34,6 +34,8 @@ plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 matplotlib.use("Agg")
 
+pd.set_option('display.max_columns', None)
+
 _MAP_RESOLUTION = 128
 # _MY_UNIT_INFLUENCE = [16, 9, 4, 1]
 _MY_UNIT_INFLUENCE = [25]
@@ -50,8 +52,8 @@ _BOUNDARY_WIDTH = 2
 
 _MY_UNITS_NUMBER = 8
 _ENEMY_UNITS_NUMBER = 8
-_STEP = 25 * _MY_UNITS_NUMBER / 4
-_STEP_MUL = 10
+_STEP_MUL = 5
+_STEP = 250 / _STEP_MUL * _MY_UNITS_NUMBER / 4
 _MAX_INFLUENCE = 25 * _ENEMY_UNITS_NUMBER
 _MIN_INFLUENCE = -16 * _ENEMY_UNITS_NUMBER
 
@@ -74,6 +76,7 @@ _GAME_SUB_QTABLE_PATH = "datas/data_for_transit/sub_q_table"
 _EPISODE_QTABLE_PATH = "datas/data_for_transit/episode_q_table.csv"
 _GAME_SUB_EPISODE_PATH = "datas/data_for_transit/sub_episode"
 
+
 def save_dataframes_to_csv(dataframes_dict, folder):
     # print(dataframes_dict.items())
     if not os.path.exists(folder):
@@ -90,6 +93,7 @@ def save_dataframes_to_csv(dataframes_dict, folder):
 
         # print(f"DataFrame '{key}' saved to {filepath}")
 
+
 def delete_sub_epidose(folder_path):
     file_list = os.listdir(folder_path)
 
@@ -97,6 +101,7 @@ def delete_sub_epidose(folder_path):
     for file in file_list:
         file_path = os.path.join(folder_path, file)  # 构造文件的完整路径
         os.remove(file_path)  # 删除文件
+
 
 def save_clusters_health_to_csv(cluster_health_dict, folder, episode, step):
     if not os.path.exists(folder):
@@ -123,6 +128,8 @@ def save_clusters_health_to_csv(cluster_health_dict, folder, episode, step):
 """
 2023-10-23
 """
+
+
 def circle_fitting(my_units_lst: list, ex_radius):
     center_x_sum = 0
     center_y_sum = 0
@@ -140,6 +147,7 @@ def circle_fitting(my_units_lst: list, ex_radius):
     radius = dist_max + ex_radius
     return center_point, radius
 
+
 # 计算标准差
 def calculate_std_deviation(numbers):
     n = len(numbers)
@@ -148,6 +156,7 @@ def calculate_std_deviation(numbers):
     variance = squared_diff_sum / n
     std_deviation = math.sqrt(variance)
     return std_deviation
+
 
 # 计算变异系数
 def calculate_coefficient_of_variation(numbers):
@@ -160,6 +169,7 @@ def calculate_coefficient_of_variation(numbers):
         return coefficient_of_variation
     else:
         return 0.0
+
 
 # 圆中散点均匀度（圆心到点距离的崎岖程度）
 def calculate_clu_uniformity(my_units_lst: list):
@@ -179,6 +189,7 @@ def calculate_clu_uniformity(my_units_lst: list):
     else:
         uniformity = 0.
     return round(uniformity, 2)
+
 
 # 圆中散点拥挤度
 def calculate_clu_crowding(my_units_lst: list, min_radius):
@@ -209,6 +220,7 @@ def calculate_clu_crowding(my_units_lst: list, min_radius):
             crowding = 0.
         return round(crowding, 2)
 
+
 # 簇/点间坐标方差之和 - 度量簇/点分布聚拢度
 def calculate_variance_sum(my_units_lst: list):
     x = [point[1] for point in my_units_lst]  # 提取 x 坐标
@@ -217,6 +229,7 @@ def calculate_variance_sum(my_units_lst: list):
     y_var = np.var(y)  # 计算 y 坐标的方差
     variance_sum = x_var + y_var  # 计算 x、y 方差之和
     return variance_sum
+
 
 """
 2023-04-04
@@ -288,6 +301,7 @@ def make_regalur_image(img, size=(256, 256)):
 """
 2023-04-04
 """
+
 
 def print_object_attribute(mp):
     print('开始输出属性:')
@@ -422,7 +436,8 @@ def save_arr(arr):
 
 # 计算两点之间的距离
 def distance_units(point1, point2):
-    return math.sqrt((point1[1] - point2[1])**2 + (point1[2] - point2[2])**2)
+    return math.sqrt((point1[1] - point2[1]) ** 2 + (point1[2] - point2[2]) ** 2)
+
 
 # 计算每个点到所有聚类中心的距离
 def calc_distances(points, centers):
@@ -434,6 +449,7 @@ def calc_distances(points, centers):
             row.append(distance_units(point, center))
         distances.append(row)
     return distances
+
 
 # 将每个点分配到最近的聚类中心
 def assign_clusters(points, centers):
@@ -448,6 +464,7 @@ def assign_clusters(points, centers):
                 min_idx = j
         clusters[min_idx].append(points[i])
     return clusters
+
 
 # 计算聚类中心
 def calc_centers(clusters):
@@ -468,6 +485,7 @@ def calc_centers(clusters):
             centers.append((center_id, center_x, center_y))
     return centers
 
+
 # 计算所有点的平均距离
 def calc_avg_distance(points, centers):
     distances = calc_distances(points, centers)
@@ -480,7 +498,10 @@ def calc_avg_distance(points, centers):
         sum_dist += min_dist
     return sum_dist / len(points)
 
+
 from sklearn.cluster import KMeans
+
+
 # 将A类和B类坐标点分别聚类
 def kmeans(my_units_lst, k):
     # 将坐标点转换为特征向量
@@ -502,6 +523,7 @@ def kmeans(my_units_lst, k):
         clustered_points.append(my_units_lst[i] + (labels[i],))
 
     return clustered_points
+
 
 # def array_to_pil_img(arr: np.ndarray, check_flag=False):
 #     norm = mcolors.TwoSlopeNorm(vmin=_MIN_INFLUENCE, vmax=_MAX_INFLUENCE, vcenter=0.0)
@@ -579,7 +601,7 @@ class QLearningTable:
             self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
                                                               index=self.q_table.columns,
                                                               name=state).to_frame().T])
-                                                              # name=str(len(state_vec) - 1)).to_frame().T])
+            # name=str(len(state_vec) - 1)).to_frame().T])
             # return len(state_vec) - 1
         # 目前不考虑相似
         # else:
@@ -630,8 +652,9 @@ class Agent(base_agent.BaseAgent):
     actions = (
         "action_ATK_nearest",
         "action_ATK_nearest_weakest",
-        "action_MIX_lure",
-        "action_MIX_gather"
+        "action_ATK_threatening",
+        # "action_MIX_lure",
+        # "action_MIX_gather"
         # "do_nothing",
         # "action_"
         # "action_TFC_000",
@@ -723,11 +746,21 @@ class Agent(base_agent.BaseAgent):
         return (position[0] / len(my_units), position[1] / len(my_units))
 
     def choice_nearest_weakest_enemy(self, mp, enemy_list):
-        sorted_enemy_lst = sorted([(item['tag'], item['x'], item['y'], item['health'], distance(mp, (item['x'], item['y']))) for item in enemy_list], key=lambda x: x[3])
-        # sorted_enemy_lst['distance'] =
-        # print(sorted_enemy_lst)
-        # print(min(sorted_enemy_lst, key=lambda x: x[3]*x[2]))
-        return min(sorted_enemy_lst, key=lambda x: x[3]*x[2]*x[2])[0]
+        sorted_enemy_lst = sorted(
+            [(item['tag'], item['x'], item['y'], item['health'], distance(mp, (item['x'], item['y']))) for item in
+             enemy_list], key=lambda x: x[3])
+        min_health_enemy = sorted_enemy_lst[0]  # 最小 health 的敌人
+        closest_enemy = min(sorted_enemy_lst, key=lambda x: x[4])  # 与 mp 最近的敌人
+        return closest_enemy[0]
+
+    def choice_threatening_enemy(self, mp, enemy_list):
+        sorted_enemy_lst = sorted(
+            [(item['tag'], item['x'], item['y'], item['health'], distance(mp, (item['x'], item['y']))) for item in
+             enemy_list], key=lambda x: x[3])
+        max_health = sorted_enemy_lst[-1][3]  # 最大 health 值
+        max_health_enemies = [enemy for enemy in sorted_enemy_lst if enemy[3] == max_health]  # 最大 health 的敌人列表
+        closest_enemy = min(max_health_enemies, key=lambda x: x[4])
+        return closest_enemy[0]
 
     def step(self, obs):
         super(Agent, self).step(obs)
@@ -745,6 +778,25 @@ class Agent(base_agent.BaseAgent):
 
     def do_nothing(self, obs):
         return actions.RAW_FUNCTIONS.no_op()
+
+
+class ShortTermReward:
+    def __init__(self):
+        self.r_kill = 0
+        self.r_fall = 0
+        self.r_inferior = 0
+        self.r_dominant = 0
+        self.r_self_health_loss_ratio = 0
+        self.r_ememy_health_loss_ratio = 0
+        self.r_fire_coverage = 0
+        self.r_covered_in_fire = 0
+
+    def __str__(self):
+        return 'MyClass({}, {}, {}, {}, {}, {}, {}, {})' \
+            .format(self.r_kill, self.r_fall,
+                    self.r_inferior, self.r_dominant,
+                    self.r_self_health_loss_ratio, self.r_ememy_health_loss_ratio,
+                    self.r_fire_coverage, self.r_covered_in_fire)
 
 
 class SmartAgent(Agent):
@@ -927,7 +979,6 @@ class SmartAgent(Agent):
             self.previous_combat_action.update({sub_table_tag: None})
         # print(self.sub_clusters_qtable_list)
 
-
     # 聚类力度为0，即不进行聚类，簇数=单位数
     def k_means_000(self, obs):
         my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
@@ -939,7 +990,7 @@ class SmartAgent(Agent):
             # print(clu_uniformity)
             # clu_crowding = calculate_clu_crowding(my_units_lst, _UNIT_RADIUS)
             clu_variance = calculate_variance_sum(my_units_lst)
-            clu_lists[1] = round(clu_variance, 1)
+            clu_lists[1] = round(clu_variance * 2) / 2
             for i in range(clu_number):
                 clu_lists[2].append((
                     # 簇id
@@ -990,7 +1041,7 @@ class SmartAgent(Agent):
                     cluster_points
                 ))
             clu_variance = calculate_variance_sum(clu_center_list)
-            clu_lists[1] = round(clu_variance, 1)
+            clu_lists[1] = round(clu_variance * 2) / 2
         self.update_sub_clusters_qtable_list(clu_lists)
         # print(clu_lists[2])
         return clu_lists
@@ -1028,7 +1079,7 @@ class SmartAgent(Agent):
                     cluster_points
                 ))
             clu_variance = calculate_variance_sum(clu_center_list)
-            clu_lists[1] = round(clu_variance, 1)
+            clu_lists[1] = round(clu_variance * 2) / 2
         self.update_sub_clusters_qtable_list(clu_lists)
         # print(clu_lists[2])
         return clu_lists
@@ -1066,7 +1117,7 @@ class SmartAgent(Agent):
                     cluster_points
                 ))
             clu_variance = calculate_variance_sum(clu_center_list)
-            clu_lists[1] = round(clu_variance, 1)
+            clu_lists[1] = round(clu_variance * 2) / 2
         self.update_sub_clusters_qtable_list(clu_lists)
         # print(clu_lists[2])
         return clu_lists
@@ -1114,8 +1165,8 @@ class SmartAgent(Agent):
         my_units_lst = sorted([(item['tag'], item['weapon_cooldown']) for item in my_units], key=lambda x: x[0])
         if len(my_units) > 0:
             return actions.RAW_FUNCTIONS.Attack_pt(
-                    "now", [item[0] for item in my_units_lst],
-                    (50, 50))
+                "now", [item[0] for item in my_units_lst],
+                (50, 50))
         # if len(my_units) > 0:
         #     return actions.RAW_FUNCTIONS.Stop_quick(
         #             "now", [item[0] for item in my_units_lst])
@@ -1126,8 +1177,8 @@ class SmartAgent(Agent):
         my_units_lst = sorted([(item['tag'], item['weapon_cooldown']) for item in my_units], key=lambda x: x[0])
         if len(my_units) > 0:
             return actions.RAW_FUNCTIONS.Smart_pt(
-                    "now", [item[0] for item in my_units_lst],
-                    (90, 90))
+                "now", [item[0] for item in my_units_lst],
+                (90, 90))
         # if len(my_units) > 0:
         #     return actions.RAW_FUNCTIONS.Stop_quick(
         #             "now", [item[0] for item in my_units_lst])
@@ -1136,7 +1187,8 @@ class SmartAgent(Agent):
     def action_ATK_nearest(self, obs):
         self.action_lst = []
         my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units], key=lambda x: x[0])
+        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units],
+                              key=lambda x: x[0])
         enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
         mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
         if len(my_units) > 0 and len(enemy_units) > 0:
@@ -1144,17 +1196,30 @@ class SmartAgent(Agent):
                 self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
                     "now", unit[0], self.get_nearest_enemy((unit[1], unit[2]), enemy_units)))
             # self.action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(mp))
+            # print(self.action_lst)
             return self.action_lst
         return actions.RAW_FUNCTIONS.no_op()
 
     def action_ATK_nearest_weakest(self, obs):
         my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
-        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units], key=lambda x: x[0])
+        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units],
+                              key=lambda x: x[0])
         enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
         mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
         if len(my_units) > 0 and len(enemy_units) > 0:
             return actions.RAW_FUNCTIONS.Smart_unit(
                 "now", [item[0] for item in my_units_lst], self.choice_nearest_weakest_enemy(mp, enemy_units))
+        return actions.RAW_FUNCTIONS.no_op()
+
+    def action_ATK_threatening(self, obs):
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units],
+                              key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
+        if len(my_units) > 0 and len(enemy_units) > 0:
+            return actions.RAW_FUNCTIONS.Smart_unit(
+                "now", [item[0] for item in my_units_lst], self.choice_threatening_enemy(mp, enemy_units))
         return actions.RAW_FUNCTIONS.no_op()
 
     def action_MIX_gather(self, obs):
@@ -1209,6 +1274,113 @@ class SmartAgent(Agent):
             return self.action_lst
         return actions.RAW_FUNCTIONS.no_op()
 
+    # 记录上次的obs状态以供即时奖励的计算
+    def get_obs(self, obs):
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']
+                                , item['health'], item['health_ratio']) for item in my_units], key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        enemy_units_list = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']
+                                    , item['health'], item['health_ratio']) for item in enemy_units],
+                                  key=lambda x: x[0])
+        # print(my_units_lst, enemy_units_list)
+        self.current_obs['game_loop'] = obs.observation.game_loop[0]
+        self.current_obs['my_units_maxH'] = self.score_defense_max
+        self.current_obs['enemy_units_maxH'] = self.score_attack_max
+        self.current_obs['my_units_lst'] = my_units_lst
+        self.current_obs['enemy_units_list'] = enemy_units_list
+        # print(self.previous_obs)
+        # return self.current_obs
+
+    # 奖励
+    def get_short_term_reward(self, previous_obs, current_obs):
+        reward = ShortTermReward()
+        # print(previous_obs, current_obs)
+        # reward = 0
+        # previous_obs = self.previous_obs
+        # print()
+        # self.get_obs(obs)
+        # current_obs = self.previous_obs
+        # print(previous_obs, current_obs)
+        # print(len(current_obs['enemy_units_list']), len(previous_obs['enemy_units_list']))
+        if previous_obs == {}:
+            pass
+        else:
+            # r_kill 敌方阵亡一个单位 加分
+            reward.r_kill = (len(previous_obs['enemy_units_list']) - len(current_obs['enemy_units_list'])) * 5
+            # r_fall 我方阵亡一个单位 扣分
+            reward.r_fall = -(len(previous_obs['my_units_lst']) - len(current_obs['my_units_lst'])) * 5
+            # r_inferior 劣势情况下局势回转 加分
+            if sum(item[5] for item in previous_obs['my_units_lst']) < sum(
+                    item[5] for item in previous_obs['enemy_units_list']):
+                if sum(item[5] for item in current_obs['enemy_units_list']) - sum(
+                        item[5] for item in current_obs['my_units_lst']) \
+                        < sum(item[5] for item in previous_obs['enemy_units_list']) - sum(
+                    item[5] for item in previous_obs['my_units_lst']):
+                    reward.r_inferior = 10
+            # r_dominant 优势情况下局势变差 扣分
+            if sum(item[5] for item in previous_obs['my_units_lst']) > sum(
+                    item[5] for item in previous_obs['enemy_units_list']):
+                if sum(item[5] for item in current_obs['my_units_lst']) - sum(
+                        item[5] for item in current_obs['enemy_units_list']) \
+                        < sum(item[5] for item in previous_obs['my_units_lst']) - sum(
+                    item[5] for item in previous_obs['enemy_units_list']):
+                    reward.r_dominant = -10
+            # r_self_health_loss_ratio 我方全队每损失1% 扣分
+            reward.r_self_health_loss_ratio = (sum(item[5] for item in current_obs['my_units_lst']) - sum(
+                item[5] for item in previous_obs['my_units_lst'])) / 10
+            # r_ememy_health_loss_ratio 敌方全队每损失1% 加分
+            reward.r_ememy_health_loss_ratio = (sum(item[5] for item in previous_obs['enemy_units_list']) - sum(
+                item[5] for item in current_obs['enemy_units_list'])) / 10
+            # r_fire_coverage 火力覆盖程度 加分
+            # r_covered_in_fire 被火力覆盖程度 扣分
+            max_previous_enemy_attacks = 0
+            max_previous_my_attacks = 0
+            for enemy_unit in previous_obs['enemy_units_list']:
+                enemy_attacks = 0
+                for my_unit in previous_obs['my_units_lst']:
+                    distance = ((enemy_unit[1] - my_unit[1]) ** 2 + (enemy_unit[2] - my_unit[2]) ** 2) ** 0.5
+                    if distance < 5:
+                        enemy_attacks += 1
+                max_previous_enemy_attacks = max(max_previous_enemy_attacks, enemy_attacks)
+            for my_unit in previous_obs['my_units_lst']:
+                my_attacks = 0
+                for enemy_unit in previous_obs['enemy_units_list']:
+                    distance = ((enemy_unit[1] - my_unit[1]) ** 2 + (enemy_unit[2] - my_unit[2]) ** 2) ** 0.5
+                    if distance < 5:
+                        my_attacks += 1
+                max_previous_my_attacks = max(max_previous_my_attacks, my_attacks)
+            max_current_enemy_attacks = 0
+            max_current_my_attacks = 0
+            for enemy_unit in current_obs['enemy_units_list']:
+                enemy_attacks = 0
+                for my_unit in current_obs['my_units_lst']:
+                    distance = ((enemy_unit[1] - my_unit[1]) ** 2 + (enemy_unit[2] - my_unit[2]) ** 2) ** 0.5
+                    if distance < 5:
+                        enemy_attacks += 1
+                max_current_enemy_attacks = max(max_current_enemy_attacks, enemy_attacks)
+            for my_unit in current_obs['my_units_lst']:
+                my_attacks = 0
+                for enemy_unit in current_obs['enemy_units_list']:
+                    distance = ((enemy_unit[1] - my_unit[1]) ** 2 + (enemy_unit[2] - my_unit[2]) ** 2) ** 0.5
+                    if distance < 5:
+                        my_attacks += 1
+                max_current_my_attacks = max(max_current_my_attacks, my_attacks)
+            if max_current_enemy_attacks > max_previous_enemy_attacks:
+                reward.r_fire_coverage = (max_current_enemy_attacks - max_previous_enemy_attacks) * 5
+            if max_current_my_attacks < max_previous_my_attacks:
+                reward.r_fire_coverage = (max_previous_my_attacks - max_current_my_attacks) * 5
+        # print(reward)
+        self.previous_reward = reward
+        return reward
+
+    def cul_short_term_reward(self, reward_class: ShortTermReward):
+        reward = reward_class.r_kill + reward_class.r_fall + reward_class.r_inferior + reward_class.r_dominant + \
+                 reward_class.r_self_health_loss_ratio + reward_class.r_ememy_health_loss_ratio + \
+                 reward_class.r_fire_coverage + reward_class.r_covered_in_fire
+        # print(reward_class)
+        # print(reward)
+        return reward
 
     def __init__(self):
         super(SmartAgent, self).__init__()
@@ -1237,6 +1409,9 @@ class SmartAgent(Agent):
         self.sub_clusters_qtable_list = {}
         self.sub_clusters_qtable_tag = None
         self.previous_sub_tag = None
+        self.previous_obs = {}
+        self.current_obs = {}
+        self.previous_reward = ShortTermReward()
         # self.qtable = QLearningTable(self.actions)
         self.new_game()
 
@@ -1302,17 +1477,17 @@ class SmartAgent(Agent):
         with open(_GAME_CLUS_PATH, "r+") as file:
             existing_data = file.read()
             for item in cluster_result[2]:
-                result = (len(item[4]),[(x[1], x[2]) for x in item[4]], item[2], item[3])
+                result = (len(item[4]), [(x[1], x[2]) for x in item[4]], item[2], item[3])
                 if str(result) not in existing_data:
                     file.write(str(result) + "\n")
 
-    # def print_cluster_health_result(self, cluster_result):
-        # with open(_GAME_CLUS_HEALTH_PATH, "r+") as file:
+            # def print_cluster_health_result(self, cluster_result):
+            # with open(_GAME_CLUS_HEALTH_PATH, "r+") as file:
             existing_data = file.read()
             # for item in cluster_result[2]:
-                # result = (len(item[4]), [(x[1], x[2]) for x in item[4]], item[2], item[3])
-                # if str(result) not in existing_data:
-                    # file.write(str(result) + "\n")
+            # result = (len(item[4]), [(x[1], x[2]) for x in item[4]], item[2], item[3])
+            # if str(result) not in existing_data:
+            # file.write(str(result) + "\n")
 
     def get_units_health_ratio(self, units):
         if len(units):
@@ -1322,14 +1497,20 @@ class SmartAgent(Agent):
 
     def get_clusters_health(self, clusters, my_units, enemy_units):
         clusters_health_dict = {}
-        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['health'], item['health_ratio']) for item in my_units])
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y'], item['health'], item['health_ratio']) for item in enemy_units])
+        my_units_lst = sorted(
+            [(item['tag'], item['x'], item['y'], item['health'], item['health_ratio']) for item in my_units])
+        enemy_units_lst = sorted(
+            [(item['tag'], item['x'], item['y'], item['health'], item['health_ratio']) for item in enemy_units])
         for cluster in clusters[2]:
             clusters_health_dict.update({cluster[0]: [unit[0] for unit in cluster[4]]})
         # print(clusters_health_dict)
         new_clusters_health_dict = {}
         for cluster_id, cluster_item in clusters_health_dict.items():
-            new_value = [(next((unit[0] for unit in my_units_lst if unit[0] == item), None), next((unit[1] for unit in my_units_lst if unit[0] == item), None), next((unit[2] for unit in my_units_lst if unit[0] == item), None), next((unit[3] for unit in my_units_lst if unit[0] == item), None), next((unit[4] for unit in my_units_lst if unit[0] == item), None)) for item in cluster_item]
+            new_value = [(next((unit[0] for unit in my_units_lst if unit[0] == item), None),
+                          next((unit[1] for unit in my_units_lst if unit[0] == item), None),
+                          next((unit[2] for unit in my_units_lst if unit[0] == item), None),
+                          next((unit[3] for unit in my_units_lst if unit[0] == item), None),
+                          next((unit[4] for unit in my_units_lst if unit[0] == item), None)) for item in cluster_item]
             new_clusters_health_dict[cluster_id] = new_value
         new_clusters_health_dict[-1] = [(unit[0], unit[1], unit[2], unit[3], unit[4]) for unit in enemy_units_lst]
         return new_clusters_health_dict
@@ -1400,7 +1581,8 @@ class SmartAgent(Agent):
         cluster_item = self.clusters_qtable.choose_action(state_im, 1 - 0.5 / math.sqrt(_EPISODE_COUNT - 1))
         cluster_result = getattr(self, cluster_item)(obs)
         cluster_health_result = self.get_clusters_health(cluster_result, my_units, enemy_units)
-        save_clusters_health_to_csv(cluster_health_result, _GAME_SUB_EPISODE_PATH, _EPISODE_COUNT, obs.observation.game_loop)
+        save_clusters_health_to_csv(cluster_health_result, _GAME_SUB_EPISODE_PATH, _EPISODE_COUNT,
+                                    obs.observation.game_loop)
         self.cluster_result = cluster_result
         self.print_cluster_result(cluster_result)
         # self.print_cluster_health_result(cluster_health_result)
@@ -1411,13 +1593,26 @@ class SmartAgent(Agent):
         self.sub_clusters_qtable_tag = (cluster_result[0], cluster_result[1])
         state_clu = self.get_state_clu(cluster_result)
         # print(self.sub_clusters_qtable_tag, self.sub_clusters_qtable_list)
-        combat_action_item = self.sub_clusters_qtable_list[self.sub_clusters_qtable_tag].choose_action(state_clu, 1 - 0.5 / math.sqrt(_EPISODE_COUNT - 1))
+        combat_action_item = self.sub_clusters_qtable_list[self.sub_clusters_qtable_tag].choose_action(state_clu,
+                                                                                                       1 - 0.5 / math.sqrt(
+                                                                                                           _EPISODE_COUNT - 1))
         with open(_GAME_ACTION_LOG_PATH, "a") as file:
             file.write(str(self.clusters.index(cluster_item)) + str(self.actions.index(combat_action_item) + 3))
 
         # action = self.qtable.choose_action(state, 1 - 0.5 / math.sqrt(_EPISODE_COUNT - 1))
         # else:
-            # action = self.qtable.choose_best_action(state)
+        # action = self.qtable.choose_best_action(state)
+
+        # 这里得到的是当前观察的结果，但是是上一次动作执行的结果，即：当前奖励-对应-上一次状态空间与动作空间
+        # self.clusters_qtable.learn(self.previous_clu_state,
+        #                               self.previous_clu_action,
+        #                               reward_cumulative,
+        #                               'terminal' if obs.last() else state_im)
+        self.get_obs(obs)
+        # print(self.previous_obs, self.current_obs)
+        self.get_short_term_reward(self.previous_obs, self.current_obs)
+        self.previous_obs = self.current_obs.copy()
+        # print(self.previous_reward)
         self.score_cumulative_attack_now = sum([item['health'] for item in enemy_units])
         self.score_cumulative_defense_now = sum([item['health'] for item in my_units])
         reward_attack = - (self.score_cumulative_attack_now - self.score_cumulative_attack_last)
@@ -1446,18 +1641,20 @@ class SmartAgent(Agent):
         # todo
         if self.previous_clu_action is not None:
             self.clusters_qtable.learn(self.previous_clu_state,
-                              self.previous_clu_action,
-                              # obs.reward,
-                              reward_cumulative,
-                              'terminal' if obs.last() else state_im)
+                                       self.previous_clu_action,
+                                       # obs.reward,
+                                       reward_cumulative,
+                                       'terminal' if obs.last() else state_im)
 
         if self.previous_combat_action[self.sub_clusters_qtable_tag] is not None:
-            self.sub_clusters_qtable_list[self.sub_clusters_qtable_tag].learn(self.previous_combat_state[self.sub_clusters_qtable_tag],
-                              self.previous_combat_action[self.sub_clusters_qtable_tag],
-                              # obs.reward,
-                              reward_cumulative,
-                              'terminal' if obs.last() else state_clu)
-
+            self.sub_clusters_qtable_list[self.sub_clusters_qtable_tag].learn(
+                self.previous_combat_state[self.sub_clusters_qtable_tag],
+                self.previous_combat_action[self.sub_clusters_qtable_tag],
+                # obs.reward,
+                # reward_cumulative,
+                self.cul_short_term_reward(self.previous_reward),
+                'terminal' if obs.last() else state_clu)
+            # print(self.sub_clusters_qtable_list[self.sub_clusters_qtable_tag].q_table)
         # print(obs.observation['score_cumulative'])
         # print(self.qtable.q_table)
         # print('observation', dir(obs.observation))
@@ -1480,6 +1677,8 @@ class SmartAgent(Agent):
             # 累积奖励
             # print(obs.observation['score_cumulative'])
             # print(obs.observation['score_cumulative'][5])
+            self.previous_obs = {}
+            self.current_obs = {}
             f = open(_GAME_RESULT_PATH, 'a', encoding='UTF-8')
             reward_d = - (self.score_cumulative_attack_now - self.score_attack_max)
             reward_a = self.score_cumulative_defense_now - self.score_defense_max
@@ -1524,10 +1723,16 @@ def main(unused_argv):
                 # map_name="MarineMicro_MvsM_8_dilemma",
                 # map_name="MarineMicro_MvsM_8_dilemma_2",
                 # map_name="MarineMicro_MvsM_Problem1",
+                # 测试用图
                 # map_name="4_clu_uni_0",
                 # map_name="4_clu_uni_0_5",
                 # map_name="4_clu_uni_1",
                 # map_name="4_clu_uni_2",
+                # map_name="8_situation1",
+                # map_name="8_situation1_1",
+                # map_name="8_situation1_2",
+                # map_name="8_situation1_3",
+                # map_name="short_term_reward_1",
                 players=[sc2_env.Agent(sc2_env.Race.terran),
                          # sc2_env.Agent(sc2_env.Race.terran)],
                          # sc2_env.Bot(sc2_env.Race.zerg, sc2_env.Difficulty.very_easy)],
