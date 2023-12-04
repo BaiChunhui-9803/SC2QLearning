@@ -649,10 +649,15 @@ class Agent(base_agent.BaseAgent):
         "k_means_100"
     )
 
+    weapon_range = {
+        units.Terran.Marine: 5,
+    }
+
     actions = (
         "action_ATK_nearest",
-        "action_ATK_nearest_weakest",
-        "action_ATK_threatening",
+        "action_ATK_clu_nearest",
+        # "action_ATK_nearest_weakest",
+        # "action_ATK_threatening",
         # "action_MIX_lure",
         # "action_MIX_gather"
         # "do_nothing",
@@ -745,7 +750,7 @@ class Agent(base_agent.BaseAgent):
             position = tuple(map(lambda x, y: x + y, position, (unit[0], unit[1])))
         return (position[0] / len(my_units), position[1] / len(my_units))
 
-    def choice_nearest_weakest_enemy(self, mp, enemy_list):
+    def choose_nearest_weakest_enemy(self, mp, enemy_list):
         sorted_enemy_lst = sorted(
             [(item['tag'], item['x'], item['y'], item['health'], distance(mp, (item['x'], item['y']))) for item in
              enemy_list], key=lambda x: x[3])
@@ -753,7 +758,7 @@ class Agent(base_agent.BaseAgent):
         closest_enemy = min(sorted_enemy_lst, key=lambda x: x[4])  # 与 mp 最近的敌人
         return closest_enemy[0]
 
-    def choice_threatening_enemy(self, mp, enemy_list):
+    def choose_threatening_enemy(self, mp, enemy_list):
         sorted_enemy_lst = sorted(
             [(item['tag'], item['x'], item['y'], item['health'], distance(mp, (item['x'], item['y']))) for item in
              enemy_list], key=lambda x: x[3])
@@ -979,6 +984,12 @@ class SmartAgent(Agent):
             self.previous_combat_action.update({sub_table_tag: None})
         # print(self.sub_clusters_qtable_list)
 
+    def get_local_enemy(self, my_local_units, enemy_units):
+        # print(my_local_units, enemy_units)
+        # print(self.weapon_range[_MY_UNIT_TYPE_ARG])
+        local_enemy_unit_list = []
+
+
     # 聚类力度为0，即不进行聚类，簇数=单位数
     def k_means_000(self, obs):
         my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
@@ -1156,7 +1167,7 @@ class SmartAgent(Agent):
         mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
         if len(my_units) > 0 and len(enemy_units) > 0:
             return actions.RAW_FUNCTIONS.Attack_unit(
-                "now", [item[0] for item in my_units_lst], self.choice_nearest_weakest_enemy(mp, enemy_units))
+                "now", [item[0] for item in my_units_lst], self.choose_nearest_weakest_enemy(mp, enemy_units))
 
         return actions.RAW_FUNCTIONS.no_op()
 
@@ -1191,6 +1202,29 @@ class SmartAgent(Agent):
                               key=lambda x: x[0])
         enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
         mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
+        # print(self.cluster_health_result)
+        if len(my_units) > 0 and len(enemy_units) > 0:
+            for unit in my_units_lst:
+                self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
+                    "now", unit[0], self.get_nearest_enemy((unit[1], unit[2]), enemy_units)))
+            # self.action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(mp))
+            # print(self.action_lst)
+            return self.action_lst
+        return actions.RAW_FUNCTIONS.no_op()
+
+    def action_ATK_clu_nearest(self, obs):
+        self.action_lst = []
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units],
+                              key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        enemy_units_lst = sorted([(item['tag'], item['x'], item['y'], item['health'], item['health_ratio']) for item in enemy_units],
+                              key=lambda x: x[0])
+        mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
+        # print(self.cluster_result)
+        for clu in self.cluster_result[2]:
+            self.get_local_enemy(clu[4], enemy_units_lst)
+            # print(clu)
         if len(my_units) > 0 and len(enemy_units) > 0:
             for unit in my_units_lst:
                 self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
@@ -1208,7 +1242,7 @@ class SmartAgent(Agent):
         mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
         if len(my_units) > 0 and len(enemy_units) > 0:
             return actions.RAW_FUNCTIONS.Smart_unit(
-                "now", [item[0] for item in my_units_lst], self.choice_nearest_weakest_enemy(mp, enemy_units))
+                "now", [item[0] for item in my_units_lst], self.choose_nearest_weakest_enemy(mp, enemy_units))
         return actions.RAW_FUNCTIONS.no_op()
 
     def action_ATK_threatening(self, obs):
@@ -1219,7 +1253,7 @@ class SmartAgent(Agent):
         mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
         if len(my_units) > 0 and len(enemy_units) > 0:
             return actions.RAW_FUNCTIONS.Smart_unit(
-                "now", [item[0] for item in my_units_lst], self.choice_threatening_enemy(mp, enemy_units))
+                "now", [item[0] for item in my_units_lst], self.choose_threatening_enemy(mp, enemy_units))
         return actions.RAW_FUNCTIONS.no_op()
 
     def action_MIX_gather(self, obs):
@@ -1441,6 +1475,7 @@ class SmartAgent(Agent):
         enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
         unit_my_list = sorted([(item['tag'], item['x'], item['y']) for item in my_units], key=lambda x: x[0])
         unit_enemy_list = sorted([(item['tag'], item['x'], item['y']) for item in enemy_units], key=lambda x: x[0])
+        # print(unit_my_list[0][1], unit_my_list[0][2], unit_enemy_list[0][1], unit_enemy_list[0][2])
         influence_map = self.get_influence_map(unit_my_list, unit_enemy_list)
         # return (len(unit_my_list), len(unit_enemy_list))
         # print(influence_map)
@@ -1714,7 +1749,7 @@ def main(unused_argv):
                 # map_name="MarineMicro",
                 # map_name="MarineMicro_TNC_1",
                 # map_name="MarineMicro_MvsM_4",
-                map_name="MarineMicro_MvsM_8",
+                # map_name="MarineMicro_MvsM_8",
                 # map_name="MarineMicro_MvsM_4_dist",
                 # map_name="MarineMicro_MvsM_8_dist",
                 # map_name="MarineMicro_MvsM_4_far",
@@ -1733,6 +1768,7 @@ def main(unused_argv):
                 # map_name="8_situation1_2",
                 # map_name="8_situation1_3",
                 # map_name="short_term_reward_1",
+                map_name="weapon_range_test_1",
                 players=[sc2_env.Agent(sc2_env.Race.terran),
                          # sc2_env.Agent(sc2_env.Race.terran)],
                          # sc2_env.Bot(sc2_env.Race.zerg, sc2_env.Difficulty.very_easy)],

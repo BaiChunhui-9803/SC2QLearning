@@ -252,7 +252,7 @@ def drawClustersHealthResult(path):
                 game_dict = {}
                 for step_index, item in enumerate(step_list):
                     if step_index == len(step_list) - 1:
-                        game_dict[lines[item].strip("step[]\n").zfill(3)] = {'line': item, 'nline': 500}
+                        game_dict[lines[item].strip("step[]\n").zfill(3)] = {'line': item, 'nline': 9999}
                     else:
                         game_dict[lines[item].strip("step[]\n").zfill(3)] = {'line': item,
                                                                              'nline': step_list[step_index + 1]}
@@ -264,6 +264,7 @@ def drawClustersHealthResult(path):
                             value['c{}_line'.format(count)] = line
                     game_dict = dict(sorted(game_dict.items(), key=lambda x: x[0]))
                 for key, value in game_dict.items():
+                    # print(value)
                     value['c-1_line'] = value.pop('c{}_line'.format(len(value) - 3))
                     value.pop('nline')
                 for step_key, step_value in game_dict.items():
@@ -511,6 +512,13 @@ if __name__ == '__main__':
     path_TL_MM_4_dist = './../datas/data_for_render/experiments_datas/two-layer/MM_4_dist/'
     path_TL_MM_8_problem1_2 = './../datas/data_for_render/experiments_datas/two-layer/MM_8_problem1_2/'
     # drawClustersResult_unit4(path_MM_8)
+    path_TL_MM_8_stR = './../datas/data_for_render/experiments_datas/20231204/shorttermR/'
+    path_TL_MM_8_stR2 = './../datas/data_for_render/experiments_datas/20231204/shorttermR2/'
+
+    path_SM_5 = './../datas/data_for_render/experiments_datas/two-layer-2/MM_8_5/'
+    path_SM_10 = './../datas/data_for_render/experiments_datas/two-layer-2/MM_8_10/'
+    path_SM_20 = './../datas/data_for_render/experiments_datas/20231204/MM_8_20/'
+
 
     # drawClustersResult_unit8(path_TL_MM_8_problem1_2)
-    drawClustersHealthResult(path_TL_MM_8)
+    drawClustersHealthResult(path_TL_MM_8_stR2)

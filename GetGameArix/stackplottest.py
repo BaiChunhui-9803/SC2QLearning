@@ -213,8 +213,16 @@ path_TL_MM_8_problem1 = 'datas/data_for_render/experiments_datas/two-layer/MM_8_
 path_TL_MM_4_dist = 'datas/data_for_render/experiments_datas/two-layer/MM_4_dist/'
 path_TL_MM_8_problem1_2 = 'datas/data_for_render/experiments_datas/two-layer/MM_8_problem1_2/'
 
+path_SM_5 = 'datas/data_for_render/experiments_datas/two-layer-2/MM_8_5/'
+path_SM_10 = 'datas/data_for_render/experiments_datas/two-layer-2/MM_8_10/'
+path_SM_20 = 'datas/data_for_render/experiments_datas/two-layer-2/MM_8_20/'
+
+
+path_TL_MM_8_stR = 'datas/data_for_render/experiments_datas/20231204/shorttermR/'
+path_TL_MM_8_stR2 = 'datas/data_for_render/experiments_datas/20231204/shorttermR2/'
+
 # fun1(MM_Origin_4)
 # fun3(MM_Origin_4)
 # fun4(path_TL_MM_8)
-fun5(path_TL_MM_8_problem1_2)
+fun5(path_TL_MM_8_stR2)
 # plt.show()
