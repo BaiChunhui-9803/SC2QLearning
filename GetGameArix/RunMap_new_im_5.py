@@ -50,8 +50,8 @@ _ENEMY_UNIT_TYPE = 48
 _ENEMY_UNIT_TYPE_ARG = units.Terran.Marine
 _BOUNDARY_WIDTH = 2
 
-_MY_UNITS_NUMBER = 8
-_ENEMY_UNITS_NUMBER = 8
+_MY_UNITS_NUMBER = 4
+_ENEMY_UNITS_NUMBER = 4
 _STEP_MUL = 5
 _STEP = 250 / _STEP_MUL * _MY_UNITS_NUMBER / 4
 _MAX_INFLUENCE = 25 * _ENEMY_UNITS_NUMBER
@@ -75,6 +75,7 @@ _GAME_ACTION_LOG_PATH = "datas/data_for_transit/action_log.csv"
 _GAME_SUB_QTABLE_PATH = "datas/data_for_transit/sub_q_table"
 _EPISODE_QTABLE_PATH = "datas/data_for_transit/episode_q_table.csv"
 _GAME_SUB_EPISODE_PATH = "datas/data_for_transit/sub_episode"
+_GAME_SHORT_TERM_RESULT_PATH = "datas/data_for_transit/short_term_result"
 
 
 def save_dataframes_to_csv(dataframes_dict, folder):
@@ -94,7 +95,7 @@ def save_dataframes_to_csv(dataframes_dict, folder):
         # print(f"DataFrame '{key}' saved to {filepath}")
 
 
-def delete_sub_epidose(folder_path):
+def delete_folder(folder_path):
     file_list = os.listdir(folder_path)
 
     # 遍历文件列表，并删除每个文件
@@ -123,6 +124,26 @@ def save_clusters_health_to_csv(cluster_health_dict, folder, episode, step):
                 file.write('\n')
             else:
                 file.write('\n\t')
+
+
+"""
+2023-12-5
+"""
+
+
+def save_short_term_result(short_term_result, folder, episode, step):
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    filepath = os.path.join(folder, f"{episode - 1}.csv")
+    if not os.path.exists(filepath):
+        with open(filepath, "w", newline="") as file:
+            writer = csv.writer(file)
+
+    with open(filepath, "a") as file:
+        file.write('step{}\n\t'.format(step))
+        file.write('{}\n'.format(short_term_result.__str__()))
+
 
 
 """
@@ -797,7 +818,7 @@ class ShortTermReward:
         self.r_covered_in_fire = 0
 
     def __str__(self):
-        return 'MyClass({}, {}, {}, {}, {}, {}, {}, {})' \
+        return '{} {} {} {} {} {} {} {}' \
             .format(self.r_kill, self.r_fall,
                     self.r_inferior, self.r_dominant,
                     self.r_self_health_loss_ratio, self.r_ememy_health_loss_ratio,
@@ -988,7 +1009,6 @@ class SmartAgent(Agent):
         # print(my_local_units, enemy_units)
         # print(self.weapon_range[_MY_UNIT_TYPE_ARG])
         local_enemy_unit_list = []
-
 
     # 聚类力度为0，即不进行聚类，簇数=单位数
     def k_means_000(self, obs):
@@ -1212,14 +1232,16 @@ class SmartAgent(Agent):
             return self.action_lst
         return actions.RAW_FUNCTIONS.no_op()
 
+    # todo
     def action_ATK_clu_nearest(self, obs):
         self.action_lst = []
         my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
         my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units],
                               key=lambda x: x[0])
         enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
-        enemy_units_lst = sorted([(item['tag'], item['x'], item['y'], item['health'], item['health_ratio']) for item in enemy_units],
-                              key=lambda x: x[0])
+        enemy_units_lst = sorted(
+            [(item['tag'], item['x'], item['y'], item['health'], item['health_ratio']) for item in enemy_units],
+            key=lambda x: x[0])
         mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
         # print(self.cluster_result)
         for clu in self.cluster_result[2]:
@@ -1656,6 +1678,10 @@ class SmartAgent(Agent):
         self.score_cumulative_defense_last = self.score_cumulative_defense_now
         # print(reward_attack, reward_defense)
 
+        # 输出即时奖励
+        save_short_term_result(self.previous_reward, _GAME_SHORT_TERM_RESULT_PATH, _EPISODE_COUNT,
+                               obs.observation.game_loop)
+
         reward_cumulative = reward_attack + reward_defense
         # reward_cumulative = obs.observation['score_cumulative'][0] + obs.observation['score_cumulative'][5] - obs.observation['score_cumulative'][3]
         # path = r'data_for_transit\reward_cumulative_log.txt'
@@ -1741,7 +1767,8 @@ def main(unused_argv):
         file.write("")
     with open(_GAME_ACTION_LOG_PATH, "w") as file:
         file.write("")
-    delete_sub_epidose(_GAME_SUB_EPISODE_PATH)
+    delete_folder(_GAME_SUB_EPISODE_PATH)
+    delete_folder(_GAME_SHORT_TERM_RESULT_PATH)
     steps = _STEP
     step_mul = _STEP_MUL
     try:
@@ -1768,7 +1795,8 @@ def main(unused_argv):
                 # map_name="8_situation1_2",
                 # map_name="8_situation1_3",
                 # map_name="short_term_reward_1",
-                map_name="weapon_range_test_1",
+                # map_name="weapon_range_test_1",
+                map_name="local_enemy_test_1",
                 players=[sc2_env.Agent(sc2_env.Race.terran),
                          # sc2_env.Agent(sc2_env.Race.terran)],
                          # sc2_env.Bot(sc2_env.Race.zerg, sc2_env.Difficulty.very_easy)],

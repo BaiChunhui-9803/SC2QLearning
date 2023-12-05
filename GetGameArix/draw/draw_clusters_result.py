@@ -237,7 +237,22 @@ def drawClustersHealthResult(path):
         if file_id == 1 or file_id % 10 == 0:
             file_name = str(file_id) + '.csv'
             file_path = path + 'sub_episode/'
+            file_path_result = path + 'short_term_result/'
+
             with open(file_path + file_name, 'r') as f:
+                # todo
+                result_step_list = []
+                with open(file_path_result + file_name, 'r') as f1:
+                    result_lines = f1.readlines()
+                    for line_index, line in enumerate(result_lines):
+                        if line.startswith("step"):
+                            result_step_list.append(line_index)
+                #     for step_index, item in enumerate(step_list):
+                #         print(result_lines[item])
+                    result_dict = {}
+                    for result_step_index, result_item in enumerate(result_step_list):
+                        result_dict[result_lines[result_item].strip("step[]\n").zfill(3)] = result_lines[result_step_index + 1].strip("\n\t")
+                    print(result_dict)
                 lines = f.readlines()
                 step_list = []
                 cluster_list = []
@@ -519,6 +534,7 @@ if __name__ == '__main__':
     path_SM_10 = './../datas/data_for_render/experiments_datas/two-layer-2/MM_8_10/'
     path_SM_20 = './../datas/data_for_render/experiments_datas/20231204/MM_8_20/'
 
+    path_strtest = './../datas/data_for_render/experiments_datas/tests/strtest/'
 
     # drawClustersResult_unit8(path_TL_MM_8_problem1_2)
-    drawClustersHealthResult(path_TL_MM_8_stR2)
+    drawClustersHealthResult(path_strtest)
