@@ -209,6 +209,7 @@ tag_list = []
 my_tag_list = []
 enemy_tag_list = []
 
+
 def update_tag_list(unit_list):
     for unit in unit_list:
         if unit[0] in tag_list:
@@ -216,12 +217,14 @@ def update_tag_list(unit_list):
         else:
             tag_list.append(unit[0])
 
+
 def update_my_tag_list(unit_list):
     for unit in unit_list:
         if unit[0] in my_tag_list:
             pass
         else:
             my_tag_list.append(unit[0])
+
 
 def update_enemy_tag_list(unit_list):
     for unit in unit_list:
@@ -233,7 +236,7 @@ def update_enemy_tag_list(unit_list):
 
 def drawClustersHealthResult(path):
     tab = Tab()
-    for file_id in range(1, 500):
+    for file_id in range(1, 10):
         if file_id == 1 or file_id % 10 == 0:
             file_name = str(file_id) + '.csv'
             file_path = path + 'sub_episode/'
@@ -242,17 +245,20 @@ def drawClustersHealthResult(path):
             with open(file_path + file_name, 'r') as f:
                 # todo
                 result_step_list = []
+                result_dict = {}
                 with open(file_path_result + file_name, 'r') as f1:
                     result_lines = f1.readlines()
                     for line_index, line in enumerate(result_lines):
                         if line.startswith("step"):
                             result_step_list.append(line_index)
-                #     for step_index, item in enumerate(step_list):
-                #         print(result_lines[item])
-                    result_dict = {}
+                    #     for step_index, item in enumerate(step_list):
+                    #         print(result_lines[item])
                     for result_step_index, result_item in enumerate(result_step_list):
-                        result_dict[result_lines[result_item].strip("step[]\n").zfill(3)] = result_lines[result_step_index + 1].strip("\n\t")
-                    print(result_dict)
+                        result_dict[result_lines[result_item].strip("step[]\n").zfill(3)] = result_lines[
+                            result_item + 1].strip("\t\n")
+                    # print(result_dict)
+                    # for key, value in result_dict.items():
+                    # print(key, value)
                 lines = f.readlines()
                 step_list = []
                 cluster_list = []
@@ -287,7 +293,8 @@ def drawClustersHealthResult(path):
                         if cluster_key.startswith('c'):
                             if cluster_key.startswith("c-1"):
                                 # print([tuple(map(int, substr.split(','))) for substr in lines[cluster_value + 1].strip('\t\n').split(';') if substr])
-                                step_value[cluster_key] = [tuple(map(int, substr.split(','))) for substr in lines[cluster_value + 1].strip('\t\n').split(';') if substr]
+                                step_value[cluster_key] = [tuple(map(int, substr.split(','))) for substr in
+                                                           lines[cluster_value + 1].strip('\t\n').split(';') if substr]
                                 update_tag_list(step_value[cluster_key])
                                 update_enemy_tag_list(step_value[cluster_key])
                             else:
@@ -304,6 +311,15 @@ def drawClustersHealthResult(path):
                 grid_y2_list = []
                 grid_y3_list = []
                 grid_y4_list = []
+
+                grid_r_kill_list = []
+                grid_r_fall_list = []
+                grid_r_inferior_list = []
+                grid_r_dominant_list = []
+                grid_r_self_health_loss_ratio_list = []
+                grid_r_ememy_health_loss_ratio_list = []
+                grid_r_fire_coverage_list = []
+                grid_r_covered_in_fire_list = []
                 for step_key, step_value in game_dict.items():
                     grid_x_list.append(step_key)
                     x_data = [t[1] for sublist in step_value.values() if isinstance(sublist, list) for t in sublist]
@@ -372,11 +388,23 @@ def drawClustersHealthResult(path):
                     grid_y1_list.append(positive_mean)
                     negative_mean = round(negative_sum / negative_count if negative_count > 0 else 0, 2)
                     grid_y2_list.append(negative_mean)
-                    positive_live_mean = round(positive_live_sum / positive_live_count if positive_live_count > 0 else 0, 2)
+                    positive_live_mean = round(
+                        positive_live_sum / positive_live_count if positive_live_count > 0 else 0, 2)
                     grid_y3_list.append(positive_live_mean)
-                    negative_live_mean = round(negative_live_sum / negative_live_count if negative_live_count > 0 else 0, 2)
+                    negative_live_mean = round(
+                        negative_live_sum / negative_live_count if negative_live_count > 0 else 0, 2)
                     grid_y4_list.append(negative_live_mean)
                     game_health_dict = {'self_units': positive_mean, 'enemy_units': negative_mean}
+                    # print(result_dict[step_key].strip(' ')[1])
+                    # print(int(result_dict[step_key].split()[1]))
+                    grid_r_kill_list.append(float(result_dict[step_key][0]))
+                    grid_r_fall_list.append(float(result_dict[step_key].split()[1]))
+                    grid_r_inferior_list.append(float(result_dict[step_key].split()[2]))
+                    grid_r_dominant_list.append(float(result_dict[step_key].split()[3]))
+                    grid_r_self_health_loss_ratio_list.append(float(result_dict[step_key].split()[4]))
+                    grid_r_ememy_health_loss_ratio_list.append(float(result_dict[step_key].split()[5]))
+                    grid_r_fire_coverage_list.append(float(result_dict[step_key].split()[6]))
+                    grid_r_covered_in_fire_list.append(float(result_dict[step_key].split()[7]))
                     x_min = min(x_data)
                     x_max = max(x_data)
                     y_min = min(y_data)
@@ -471,18 +499,19 @@ def drawClustersHealthResult(path):
                                        label_opts=opts.LabelOpts(is_show=False, color="skyblue")
                                        # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='blue')
                                        )
-                            .add_yaxis("selfHm-enemyHm", [x - y for x, y in zip(grid_y3_list, grid_y4_list)], is_smooth=True,
+                            .add_yaxis("globalReward", [x - y for x, y in zip(grid_y3_list, grid_y4_list)],
+                                       is_smooth=True,
                                        symbol='',
-                                       linestyle_opts=opts.LineStyleOpts(color="green"),
-                                       itemstyle_opts=opts.ItemStyleOpts(color="green", color0="green",
-                                                                         border_color="green"),
-                                       label_opts=opts.LabelOpts(is_show=False, color="green"),
-                                       areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='green')
+                                       linestyle_opts=opts.LineStyleOpts(color="#228B3B"),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="#228B3B", color0="#228B3B",
+                                                                         border_color="#228B3B"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="#228B3B"),
+                                       areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='#228B3B')
                                        )
                             # .set_series_opts(
                             # areastyle_opts=opts.AreaStyleOpts(opacity=0.5),
                             # label_opts=opts.LabelOpts(is_show=True),
-                        # )
+                            # )
                             .set_global_opts(
                             xaxis_opts=opts.AxisOpts(
                                 axistick_opts=opts.AxisTickOpts(is_align_with_label=True),
@@ -495,10 +524,123 @@ def drawClustersHealthResult(path):
                             # ),
                         )
                     )
+                    # y_data_2 = [list(map(float, data.split())) for data in result_dict.values()]
+                    # y_data_2 = list(zip(*y_data_2))
+                    line2 = (
+                        Line()
+                            .add_xaxis(grid_x_list)
+                            .add_yaxis("rKill", grid_r_kill_list, is_smooth=True,
+                                       symbol='',
+                                       linestyle_opts=opts.LineStyleOpts(color="#FF1F5B"),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="#FF1F5B", color0="#FF1F5B",
+                                                                         border_color="#FF1F5B"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="#FF1F5B")
+                                       # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='red')
+                                       )
+                            .add_yaxis("rFall", grid_r_fall_list, is_smooth=True,
+                                       symbol='',
+                                       linestyle_opts=opts.LineStyleOpts(color="#009ADE"),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="#009ADE", color0="#009ADE",
+                                                                         border_color="#009ADE"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="#009ADE")
+                                       # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='red')
+                                       )
+                            .add_yaxis("rOutperform", grid_r_inferior_list, is_smooth=True,
+                                       symbol='',
+                                       linestyle_opts=opts.LineStyleOpts(color="#F28522"),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="#F28522", color0="#F28522",
+                                                                         border_color="#F28522"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="#F28522")
+                                       # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='red')
+                                       )
+                            .add_yaxis("rUnderperform", grid_r_dominant_list, is_smooth=True,
+                                       symbol='',
+                                       linestyle_opts=opts.LineStyleOpts(color="#00CD6C"),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="#00CD6C", color0="#00CD6C",
+                                                                         border_color="#00CD6C"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="#00CD6C")
+                                       # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='red')
+                                       )
+                            .add_yaxis("rSelfH", grid_r_self_health_loss_ratio_list, is_smooth=True,
+                                       symbol='',
+                                       linestyle_opts=opts.LineStyleOpts(color="#AF58BA"),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="#AF58BA", color0="#AF58BA",
+                                                                         border_color="#AF58BA"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="#AF58BA")
+                                       # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='red')
+                                       )
+                            .add_yaxis("rEmemyH", grid_r_ememy_health_loss_ratio_list, is_smooth=True,
+                                       symbol='',
+                                       linestyle_opts=opts.LineStyleOpts(color="#FFC61E"),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="#FFC61E", color0="#FFC61E",
+                                                                         border_color="#FFC61E"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="#FFC61E")
+                                       # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='red')
+                                       )
+                            .add_yaxis("rFCoverage", grid_r_fire_coverage_list, is_smooth=True,
+                                       symbol='',
+                                       linestyle_opts=opts.LineStyleOpts(color="#A6761D"),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="#A6761D", color0="#A6761D",
+                                                                         border_color="#A6761D"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="#A6761D")
+                                       # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='red')
+                                       )
+                            .add_yaxis("rFCovered", grid_r_covered_in_fire_list, is_smooth=True,
+                                       symbol='',
+                                       linestyle_opts=opts.LineStyleOpts(color="#A0B1BA"),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="#A0B1BA", color0="#A0B1BA",
+                                                                         border_color="#A0B1BA"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="#A0B1BA")
+                                       # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='red')
+                                       )
+                            .add_yaxis("reward", [a + b + c + d + e + f + g + h for a, b, c, d, e, f, g, h in zip(
+                                                grid_r_kill_list, grid_r_fall_list,
+                                                grid_r_inferior_list, grid_r_dominant_list,
+                                                grid_r_self_health_loss_ratio_list, grid_r_ememy_health_loss_ratio_list,
+                                                grid_r_fire_coverage_list, grid_r_covered_in_fire_list)],
+                                       is_smooth=True,
+                                       symbol='',
+                                       linestyle_opts=opts.LineStyleOpts(color="#9CCEA7"),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="#9CCEA7", color0="#9CCEA7",
+                                                                         border_color="#9CCEA7"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="#9CCEA7"),
+                                       areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='#9CCEA7')
+                                       )
+                            .set_global_opts(
+                            xaxis_opts=opts.AxisOpts(
+                                axistick_opts=opts.AxisTickOpts(is_align_with_label=True),
+                                is_scale=False,
+                                boundary_gap=False,
+                            ),
+                            legend_opts=opts.LegendOpts(pos_top="50%", pos_right="15%", pos_left="45%"),
+                            # visualmap_opts=opts.VisualMapOpts(
+                            #     type_="color", max_=1, min_=1
+                            # ),
+                        )
+                    )
+                    # x_data_2 = [int(i) for i in result_dict.keys()]
+                    # y_data_2 = [list(map(float, data.split())) for data in result_dict.values()]
+                    # y_data_2 = list(zip(*y_data_2))
+                    # for i in range(len(y_data_2)):
+                    #     line2.add_xaxis(x_data_2)
+                    #     line2.add_yaxis("short_term_result", y_data_2[i], is_smooth=True)
+                    # # for key, value in result_dict.items():
+                    # #     step = int(key)
+                    # #     values = [float(x) for x in value.split()]
+                    # #     line2.add_xaxis([f'step[{step}]'])
+                    # #     line2.add_yaxis('', values, linestyle_opts=opts.LineStyleOpts(width=1))
+                    # line2.set_global_opts(title_opts=opts.TitleOpts(title='Line Chart'),
+                    #                       xaxis_opts=opts.AxisOpts(name='Step'),
+                    #                       yaxis_opts=opts.AxisOpts(name='Value'))
                     grid.add(scatter, grid_opts=opts.GridOpts(pos_left="5%", pos_right="60%", pos_top="15%"))
                     grid.add(line,
                              grid_opts=opts.GridOpts(
                                  pos_left="45%", pos_right="5%", pos_top="10%", pos_bottom="55%"
+                             )
+                             )
+                    grid.add(line2,
+                             grid_opts=opts.GridOpts(
+                                 pos_left="45%", pos_right="5%", pos_top="55%", pos_bottom="10%"
                              )
                              )
                     tl.add(grid, "step{}".format(step_key))
