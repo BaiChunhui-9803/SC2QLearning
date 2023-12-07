@@ -1005,6 +1005,7 @@ class SmartAgent(Agent):
             self.previous_combat_action.update({sub_table_tag: None})
         # print(self.sub_clusters_qtable_list)
 
+    # todo
     def get_local_enemy(self, my_local_units, enemy_units):
         # print(my_local_units, enemy_units)
         # print(self.weapon_range[_MY_UNIT_TYPE_ARG])
