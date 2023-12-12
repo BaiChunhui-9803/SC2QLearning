@@ -182,7 +182,7 @@ def fun5(path):
     ax.set_xlabel('Number of Samples')
     ax.set_ylabel('Action Ratios')
     ax.set_title('Action Selection Trends')
-    fig.savefig('drawAllStackedChart.png', dpi=500, bbox_inches='tight')
+    fig.savefig('./output/drawAllStackedChart.png', dpi=500, bbox_inches='tight')
 
 
 MM_Origin_4 = "datas/data_for_render/experiments_datas/problems/MM_Origin_4/"
@@ -195,34 +195,33 @@ pathMM_Weak_1 = "datas/data_for_render/experiments_datas/problems/MM_Weak_8/"
 pathMM_Weak_2 = "datas/data_for_render/experiments_datas/problems/MM_Weak_8_2/"
 
 # 改进实验
-path_PC_MM_4 = 'datas/data_for_render/experiments_datas/parametric_clustering/MM_4/'
-path_PC_MM_8 = 'datas/data_for_render/experiments_datas/parametric_clustering/MM_8/'
-path_PC_MM_Far_4 = 'datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_4/'
-path_PC_MM_Far_8 = 'datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8/'
-path_PC_MM_Far_8_2 = 'datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_2/'
-path_PC_MM_Far_8_3 = 'datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_3/'
-path_PC_MM_Far_8_4 = 'datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_4/'
-path_PC_MM_Dist_8 = 'datas/data_for_render/experiments_datas/parametric_clustering/MM_Dist_8/'
-path_PC_MM_Weak_8 = 'datas/data_for_render/experiments_datas/parametric_clustering/MM_Weak_8/'
+path_PC_MM_4 = '../datas/data_for_render/experiments_datas/parametric_clustering/MM_4/'
+path_PC_MM_8 = '../datas/data_for_render/experiments_datas/parametric_clustering/MM_8/'
+path_PC_MM_Far_4 = '../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_4/'
+path_PC_MM_Far_8 = '../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8/'
+path_PC_MM_Far_8_2 = '../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_2/'
+path_PC_MM_Far_8_3 = '../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_3/'
+path_PC_MM_Far_8_4 = '../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_4/'
+path_PC_MM_Dist_8 = '../datas/data_for_render/experiments_datas/parametric_clustering/MM_Dist_8/'
+path_PC_MM_Weak_8 = '../datas/data_for_render/experiments_datas/parametric_clustering/MM_Weak_8/'
 
 # 双层模型
-path_TL_MM_8 = 'datas/data_for_render/experiments_datas/two-layer/MM_8/'
-path_TL_MM_8_dist = 'datas/data_for_render/experiments_datas/two-layer/MM_8_dist/'
-path_TL_MM_8_far = 'datas/data_for_render/experiments_datas/two-layer/MM_8_far/'
-path_TL_MM_8_problem1 = 'datas/data_for_render/experiments_datas/two-layer/MM_8_problem1/'
-path_TL_MM_4_dist = 'datas/data_for_render/experiments_datas/two-layer/MM_4_dist/'
-path_TL_MM_8_problem1_2 = 'datas/data_for_render/experiments_datas/two-layer/MM_8_problem1_2/'
+path_TL_MM_8 = '../datas/data_for_render/experiments_datas/two-layer/MM_8/'
+path_TL_MM_8_dist = '../datas/data_for_render/experiments_datas/two-layer/MM_8_dist/'
+path_TL_MM_8_far = '../datas/data_for_render/experiments_datas/two-layer/MM_8_far/'
+path_TL_MM_8_problem1 = '../datas/data_for_render/experiments_datas/two-layer/MM_8_problem1/'
+path_TL_MM_4_dist = '../datas/data_for_render/experiments_datas/two-layer/MM_4_dist/'
+path_TL_MM_8_problem1_2 = '../datas/data_for_render/experiments_datas/two-layer/MM_8_problem1_2/'
 
-path_SM_5 = 'datas/data_for_render/experiments_datas/two-layer-2/MM_8_5/'
-path_SM_10 = 'datas/data_for_render/experiments_datas/two-layer-2/MM_8_10/'
-path_SM_20 = 'datas/data_for_render/experiments_datas/two-layer-2/MM_8_20/'
+path_SM_5 = '../datas/data_for_render/experiments_datas/two-layer-2/MM_8_5/'
+path_SM_10 = '../datas/data_for_render/experiments_datas/two-layer-2/MM_8_10/'
+path_SM_20 = '../datas/data_for_render/experiments_datas/two-layer-2/MM_8_20/'
 
 
-path_TL_MM_8_stR = 'datas/data_for_render/experiments_datas/20231204/shorttermR/'
-path_TL_MM_8_stR2 = 'datas/data_for_render/experiments_datas/20231204/shorttermR2/'
+path_TL_MM_8_stR = '../datas/data_for_render/experiments_datas/shorttermR/shorttermR/'
 
 # fun1(MM_Origin_4)
 # fun3(MM_Origin_4)
 # fun4(path_TL_MM_8)
-fun5(path_TL_MM_8_stR2)
+fun5(path_TL_MM_8_stR)
 # plt.show()

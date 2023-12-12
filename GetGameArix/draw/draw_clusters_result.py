@@ -658,7 +658,7 @@ def drawClustersHealthResult(path):
                 )
                 # page.render("drawClustersHealthResult.html")
                 tab.add(tl, "{}".format(file_id))
-    tab.render("drawClustersHealthResult.html")
+    tab.render("./output/drawClustersHealthResult.html")
 
 
 if __name__ == '__main__':
@@ -669,8 +669,8 @@ if __name__ == '__main__':
     path_TL_MM_4_dist = './../datas/data_for_render/experiments_datas/two-layer/MM_4_dist/'
     path_TL_MM_8_problem1_2 = './../datas/data_for_render/experiments_datas/two-layer/MM_8_problem1_2/'
     # drawClustersResult_unit4(path_MM_8)
-    path_TL_MM_8_stR = './../datas/data_for_render/experiments_datas/20231204/shorttermR/'
-    path_TL_MM_8_stR2 = './../datas/data_for_render/experiments_datas/20231204/shorttermR2/'
+    path_TL_MM_8_stR = './../datas/data_for_render/experiments_datas/shorttermR/shorttermR/'
+    path_TL_MM_8_stR2 = './../datas/data_for_render/experiments_datas/shorttermR/shorttermR2/'
 
     path_SM_5 = './../datas/data_for_render/experiments_datas/two-layer-2/MM_8_5/'
     path_SM_10 = './../datas/data_for_render/experiments_datas/two-layer-2/MM_8_10/'
@@ -679,4 +679,4 @@ if __name__ == '__main__':
     path_strtest = './../datas/data_for_render/experiments_datas/tests/strtest/'
 
     # drawClustersResult_unit8(path_TL_MM_8_problem1_2)
-    drawClustersHealthResult(path_strtest)
+    drawClustersHealthResult(path_TL_MM_8_stR)

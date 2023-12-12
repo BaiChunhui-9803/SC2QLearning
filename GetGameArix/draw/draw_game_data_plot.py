@@ -67,7 +67,7 @@ def drawLineChart(path, flag=False):
     # ax.tight_layout()
     # plt.savefig('pathMvsM_1', dpi=600)
     # plt.show()
-    fig.savefig('drawLineChart.png', dpi=500, bbox_inches='tight')
+    fig.savefig('./output/drawLineChart.png', dpi=500, bbox_inches='tight')
 
 
 def drawBoxChart(path, flag=False):
@@ -196,7 +196,7 @@ def drawBoxChart(path, flag=False):
             whisker.set(color='b')
             cap.set(color='b')
     plt.legend(bplot1['boxes'], labels)
-    fig.savefig('drawBoxChart.png', dpi=500, bbox_inches='tight')
+    fig.savefig('./output/drawBoxChart.png', dpi=500, bbox_inches='tight')
 
 
 def drawHistoryLineChart(path, flag=False):
@@ -298,7 +298,7 @@ def drawHistoryLineChart(path, flag=False):
     # fig.legend(lines, labels, loc='right')
     fig.legend(bbox_to_anchor=(1.3, 0.8))
     fig.tight_layout()
-    fig.savefig('drawHistoryLineChart.png', dpi=500, bbox_inches='tight')
+    fig.savefig('./output/drawHistoryLineChart.png', dpi=500, bbox_inches='tight')
 
 def drawActionLogLineChart(path):
     with open(path + 'action_log.csv', 'r') as file:
@@ -330,7 +330,7 @@ def drawActionLogLineChart(path):
     plt.title('Degree of Overlapping Temporal Proximity Action')
     plt.xlabel('Game Episode')
     plt.ylabel('Num of Overlapping Temporal Proximity Action')
-    fig.savefig('drawActionLogLineChart.png', dpi=500, bbox_inches='tight')
+    fig.savefig('./output/drawActionLogLineChart.png', dpi=500, bbox_inches='tight')
     # print(result)
 
 def drawQTableHeatmap(path):
