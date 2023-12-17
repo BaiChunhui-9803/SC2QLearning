@@ -158,7 +158,7 @@ def fun4(path):
 def fun5(path):
     path_name = f"{path}episode_q_table.csv"
     data = pd.read_csv(path_name, header=None, skiprows=[0])
-    print(data)
+    # print(data)
     # 对正负值进行归一化
     for index, row in data.iterrows():
         min_val = min(row)

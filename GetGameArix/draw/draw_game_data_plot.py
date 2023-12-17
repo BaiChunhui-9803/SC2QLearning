@@ -122,15 +122,15 @@ def drawBoxChart(path, flag=False):
     df_RA = pd.DataFrame({'0-20%/': col2[:number], '80-100% Reward Attack': col2[-number:]})
     df_RD = pd.DataFrame({'0-20%/': col3[:number], '80-100% Reward Defense': col3[-number:]})
     df_RT = pd.DataFrame({'0-20%/': col4[:number], '80-100% Reward Total': col4[-number:]})
-    print(col0.count('Win') / len(col0), col0[:number].count('Win') / len(col0[:number]), col0[-number:].count('Win') / len(col0[-number:]),
+    print(col0.count('Win') / len(col0), '\t', col0[:number].count('Win') / len(col0[:number]), '\t', col0[-number:].count('Win') / len(col0[-number:]), '\t',
           "{:.2%}".format((col0[-number:].count('Win') / len(col0[-number:]) - col0[:number].count('Win') / len(col0[:number])) / (col0[:number].count('Win') / len(col0[:number]))))
-    print(sum(col1) / len(col1), sum(col1[:number]) / len(col1[:number]), sum(col1[-number:]) / len(col1[-number:]),
+    print(sum(col1) / len(col1), '\t', sum(col1[:number]) / len(col1[:number]), '\t', sum(col1[-number:]) / len(col1[-number:]), '\t',
           "{:.2%}".format((sum(col1[-number:]) / len(col1[-number:]) - sum(col1[:number]) / len(col1[:number])) / (sum(col1[:number]) / len(col1[:number]))))
-    print(sum(col2) / len(col2), sum(col2[:number]) / len(col2[:number]), sum(col2[-number:]) / len(col2[-number:]),
+    print(sum(col2) / len(col2), '\t', sum(col2[:number]) / len(col2[:number]), '\t', sum(col2[-number:]) / len(col2[-number:]), '\t',
           "{:.2%}".format((sum(col2[-number:]) / len(col2[-number:]) - sum(col2[:number]) / len(col2[:number])) / (sum(col2[:number]) / len(col2[:number]))))
-    print(sum(col3) / len(col3), sum(col3[:number]) / len(col3[:number]), sum(col3[-number:]) / len(col3[-number:]),
+    print(sum(col3) / len(col3), '\t', sum(col3[:number]) / len(col3[:number]), '\t', sum(col3[-number:]) / len(col3[-number:]), '\t',
           "{:.2%}".format((sum(col3[-number:]) / len(col3[-number:]) - sum(col3[:number]) / len(col3[:number])) / (sum(col3[:number]) / len(col3[:number]))))
-    print(sum(col4) / len(col4), sum(col4[:number]) / len(col4[:number]), sum(col4[-number:]) / len(col4[-number:]),
+    print(sum(col4) / len(col4), '\t', sum(col4[:number]) / len(col4[:number]), '\t', sum(col4[-number:]) / len(col4[-number:]), '\t',
           "{:.2%}".format((sum(col4[-number:]) / len(col4[-number:]) - sum(col4[:number]) / len(col4[:number])) / (sum(col4[:number]) / len(col4[:number]))))
     # plt.title("First 20% of Training Episodes")
     face_colors = ['pink', 'lightsteelblue']
@@ -358,6 +358,50 @@ def drawQTableMap(path):
 
     # 输出每一列的和
     print(col_sums)
+
+def drawWinRateLineChart(path_list, title_list):
+    win_rate = []
+    for index, path in enumerate(path_list):
+        result = []
+        win_rate.append([])
+        with open(path + 'game_result.txt', 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                result.append(line.split()[0])
+            for i in range(len(result)):
+                start_index = max(0, i - 19)  # 计算起始节点的索引
+                win_count = result[start_index:i + 1].count("Win")  # 统计第i-20到第i个节点中"Win"的次数
+                win_rate[index].append(win_count / (i - start_index + 1))
+        # print(win_rate)
+        # plt.plot(range(len(win_rate)), win_rate, c='lavender', label='Num of Overlapping Action')
+
+    # plt.clf()
+    # fig = plt.figure(dpi=500, figsize=(8, 4))
+    # fig = plt.figure(dpi=200, figsize=(8, 4))
+    # colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange']
+    # '-', '--', '-.', ':', 'None', ' ', '', 'solid', 'dashed', 'dashdot', 'dotted'
+    # linestyles = ['-', '-', '-', '-', '--', '--', '--', '--']
+    colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'gray']
+    linestyles = ['-', '--', '-.', '-', '--', '-.', ':']
+
+    x = list(range(0, len(win_rate[0])))
+    fig, ax = plt.subplots()
+    fig.set_size_inches(12, 6)
+    for i, (y, color, linestyle) in enumerate(zip(win_rate, colors, linestyles)):
+        ax.plot(x, y, label=title_list[i], color=color, linestyle=linestyle, linewidth=1)
+    plt.xlim(0, len(win_rate[0]))
+    ax.legend(loc='lower right')
+    fig.subplots_adjust(hspace=0.5)  # 调整纵向间距
+    # ax.tight_layout()  # 自动调整整体布局
+    # ax.show()
+    ax.set_title('Win Rate of Nearly 20 Game Episodes')
+    ax.set_xlabel('Game Episode')
+    ax.set_ylabel('Win Rate')
+    fig.savefig('./output/drawWinRateLineChart.png', dpi=500, bbox_inches='tight')
+
+    # print(win_rate)
+    # plt.show()
+
 
 
 # 按间距中的绿色按钮以运行脚本。

@@ -52,14 +52,14 @@ _BOUNDARY_WIDTH = 2
 
 _MY_UNITS_NUMBER = 4
 _ENEMY_UNITS_NUMBER = 4
-_STEP_MUL = 5
+_STEP_MUL = 10
 _STEP = 250 / _STEP_MUL * _MY_UNITS_NUMBER / 4
 _MAX_INFLUENCE = 25 * _ENEMY_UNITS_NUMBER
 _MIN_INFLUENCE = -16 * _ENEMY_UNITS_NUMBER
 
 _EPISODE_COUNT = 1
 
-# 单位视野半径
+# 单位射程半径
 _UNIT_RADIUS = 5.
 # state_vec = []
 
@@ -76,7 +76,7 @@ _GAME_SUB_QTABLE_PATH = "datas/data_for_transit/sub_q_table"
 _EPISODE_QTABLE_PATH = "datas/data_for_transit/episode_q_table.csv"
 _GAME_SUB_EPISODE_PATH = "datas/data_for_transit/sub_episode"
 _GAME_SHORT_TERM_RESULT_PATH = "datas/data_for_transit/short_term_result"
-
+_GAME_ACTION_PATH = "datas/data_for_transit/action.csv"
 
 def save_dataframes_to_csv(dataframes_dict, folder):
     # print(dataframes_dict.items())
@@ -677,7 +677,8 @@ class Agent(base_agent.BaseAgent):
     actions = (
         "action_ATK_nearest",
         "action_ATK_clu_nearest",
-        # "action_ATK_nearest_weakest",
+        "action_ATK_nearest_weakest",
+        "action_ATK_clu_nearest_weakest",
         # "action_ATK_threatening",
         # "action_MIX_lure",
         # "action_MIX_gather"
@@ -1007,9 +1008,38 @@ class SmartAgent(Agent):
 
     # todo
     def get_local_enemy(self, my_local_units, enemy_units):
-        # print(my_local_units, enemy_units)
-        # print(self.weapon_range[_MY_UNIT_TYPE_ARG])
         local_enemy_unit_list = []
+        # 循环遍历enemy_units中的每个单位
+        for enemy_unit in enemy_units:
+            sum_distance = 0
+            count = 0
+            # 循环遍历my_units中的每个单位
+            for my_unit in my_local_units:
+                # 如果两个单位之间的距离小于5，则说明该enemy_unit被my_unit火力覆盖
+                sum_distance += distance((enemy_unit[1], enemy_unit[2]), (my_unit[1], my_unit[2]))
+                if distance((enemy_unit[1], enemy_unit[2]), (my_unit[1], my_unit[2])) < _UNIT_RADIUS:
+                    count += 1
+            local_enemy_unit_list.append((enemy_unit, count, sum_distance))
+
+        # 对result进行排序，按照每个enemy_unit被覆盖的数量进行降序排序
+        local_enemy_unit_list.sort(key=lambda x: (x[1], -x[2]), reverse=True)
+        return local_enemy_unit_list
+
+    def get_local_weak_enemy(self, my_local_units, enemy_units):
+        local_enemy_unit_list = []
+        # 循环遍历enemy_units中的每个单位
+        for enemy_unit in enemy_units:
+            count = 0
+            # 循环遍历my_units中的每个单位
+            for my_unit in my_local_units:
+                # 如果两个单位之间的距离小于5，则说明该enemy_unit被my_unit火力覆盖
+                if distance((enemy_unit[1], enemy_unit[2]), (my_unit[1], my_unit[2])) < _UNIT_RADIUS:
+                    count += 1
+            local_enemy_unit_list.append((enemy_unit, count, enemy_unit[3]))
+
+        # 对result进行排序，按照每个enemy_unit被覆盖的数量进行降序排序
+        local_enemy_unit_list.sort(key=lambda x: (x[1], -x[2]), reverse=True)
+        return local_enemy_unit_list
 
     # 聚类力度为0，即不进行聚类，簇数=单位数
     def k_means_000(self, obs):
@@ -1230,6 +1260,10 @@ class SmartAgent(Agent):
                     "now", unit[0], self.get_nearest_enemy((unit[1], unit[2]), enemy_units)))
             # self.action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(mp))
             # print(self.action_lst)
+            if 'action_ATK_nearest' in self.action_map:
+                self.action_map['action_ATK_nearest'] += 1
+            else:
+                self.action_map['action_ATK_nearest'] = 1
             return self.action_lst
         return actions.RAW_FUNCTIONS.no_op()
 
@@ -1245,15 +1279,17 @@ class SmartAgent(Agent):
             key=lambda x: x[0])
         mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
         # print(self.cluster_result)
-        for clu in self.cluster_result[2]:
-            self.get_local_enemy(clu[4], enemy_units_lst)
-            # print(clu)
         if len(my_units) > 0 and len(enemy_units) > 0:
-            for unit in my_units_lst:
-                self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
-                    "now", unit[0], self.get_nearest_enemy((unit[1], unit[2]), enemy_units)))
-            # self.action_lst.append(actions.RAW_FUNCTIONS.raw_move_camera(mp))
-            # print(self.action_lst)
+            for clu in self.cluster_result[2]:
+                local_enemy_list = self.get_local_enemy(clu[4], enemy_units_lst)
+                for unit in clu[4]:
+                    # print(local_enemy_list[0][0])
+                    self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
+                        "now", unit[0], local_enemy_list[0][0][0]))
+            if 'action_ATK_clu_nearest' in self.action_map:
+                self.action_map['action_ATK_clu_nearest'] += 1
+            else:
+                self.action_map['action_ATK_clu_nearest'] = 1
             return self.action_lst
         return actions.RAW_FUNCTIONS.no_op()
 
@@ -1264,8 +1300,37 @@ class SmartAgent(Agent):
         enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
         mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
         if len(my_units) > 0 and len(enemy_units) > 0:
+            if 'action_ATK_nearest_weakest' in self.action_map:
+                self.action_map['action_ATK_nearest_weakest'] += 1
+            else:
+                self.action_map['action_ATK_nearest_weakest'] = 1
             return actions.RAW_FUNCTIONS.Smart_unit(
                 "now", [item[0] for item in my_units_lst], self.choose_nearest_weakest_enemy(mp, enemy_units))
+        return actions.RAW_FUNCTIONS.no_op()
+
+    def action_ATK_clu_nearest_weakest(self, obs):
+        self.action_lst = []
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units],
+                              key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        enemy_units_lst = sorted(
+            [(item['tag'], item['x'], item['y'], item['health'], item['health_ratio']) for item in enemy_units],
+            key=lambda x: x[0])
+        mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
+        # print(self.cluster_result)
+        if len(my_units) > 0 and len(enemy_units) > 0:
+            for clu in self.cluster_result[2]:
+                local_enemy_list = self.get_local_weak_enemy(clu[4], enemy_units_lst)
+                for unit in clu[4]:
+                    # print(local_enemy_list[0][0])
+                    self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
+                        "now", unit[0], local_enemy_list[0][0][0]))
+            if 'action_ATK_clu_nearest_weakest' in self.action_map:
+                self.action_map['action_ATK_clu_nearest_weakest'] += 1
+            else:
+                self.action_map['action_ATK_clu_nearest_weakest'] = 1
+            return self.action_lst
         return actions.RAW_FUNCTIONS.no_op()
 
     def action_ATK_threatening(self, obs):
@@ -1413,14 +1478,14 @@ class SmartAgent(Agent):
                 enemy_attacks = 0
                 for my_unit in current_obs['my_units_lst']:
                     distance = ((enemy_unit[1] - my_unit[1]) ** 2 + (enemy_unit[2] - my_unit[2]) ** 2) ** 0.5
-                    if distance < 5:
+                    if distance < _UNIT_RADIUS:
                         enemy_attacks += 1
                 max_current_enemy_attacks = max(max_current_enemy_attacks, enemy_attacks)
             for my_unit in current_obs['my_units_lst']:
                 my_attacks = 0
                 for enemy_unit in current_obs['enemy_units_list']:
                     distance = ((enemy_unit[1] - my_unit[1]) ** 2 + (enemy_unit[2] - my_unit[2]) ** 2) ** 0.5
-                    if distance < 5:
+                    if distance < _UNIT_RADIUS:
                         my_attacks += 1
                 max_current_my_attacks = max(max_current_my_attacks, my_attacks)
             if max_current_enemy_attacks > max_previous_enemy_attacks:
@@ -1451,6 +1516,7 @@ class SmartAgent(Agent):
         self._move_back = True
         self._dis_move_back = [True, True, True, True, True, True, True, True]
         self.action_lst = []
+        self.action_map = {}
         self.score_cumulative_attack_last = 0
         self.score_cumulative_defense_last = 0
         self.score_cumulative_attack_now = 0
@@ -1462,6 +1528,7 @@ class SmartAgent(Agent):
         self.action_queue = deque()
         self.end_game_frames = _STEP * _STEP_MUL
         self.end_game_state = 'Dogfall'
+        self.end_game_flag = False
         self.clusters_qtable = QLearningTable(self.clusters)
         self.sub_clusters_qtable_list = {}
         self.sub_clusters_qtable_tag = None
@@ -1618,11 +1685,13 @@ class SmartAgent(Agent):
         # Zergling & Marine
         if len(enemy_units) == 0 and obs.observation['score_cumulative'][5] == obs.observation['score_cumulative'][3]:
             self.end_game_state = 'Win'
+            self.end_game_flag = True
             if self.end_game_frames > obs.observation.game_loop:
                 self.end_game_frames = obs.observation.game_loop
             # print('You Win.')
         if len(my_units) == 0:
             self.end_game_state = 'Loss'
+            self.end_game_flag = True
             if self.end_game_frames > obs.observation.game_loop:
                 self.end_game_frames = obs.observation.game_loop
             # print('You loss.')
@@ -1679,6 +1748,7 @@ class SmartAgent(Agent):
         self.score_cumulative_defense_last = self.score_cumulative_defense_now
         # print(reward_attack, reward_defense)
 
+        # print(self.action_map)
         # 输出即时奖励
         save_short_term_result(self.previous_reward, _GAME_SHORT_TERM_RESULT_PATH, _EPISODE_COUNT,
                                obs.observation.game_loop)
@@ -1753,10 +1823,16 @@ class SmartAgent(Agent):
             # todo
             self.clusters_qtable.q_table.to_csv(_GAME_QTABLE_PATH, header=True, index=True, sep=',')
             self.end_game_frames = _STEP * _STEP_MUL
-            self.end_game_state = 'Dogfall'
+            if self.end_game_flag != True:
+                self.end_game_state = 'Dogfall'
+                self.end_game_flag = False
             # todo
             with open(_GAME_ACTION_LOG_PATH, "a") as file:
                 file.write('\n')
+            with open(_GAME_ACTION_PATH, "a") as file:
+                if _EPISODE_COUNT == 2 or _EPISODE_COUNT % 10 == 0:
+                    file.write('\n')
+                    json.dump(self.action_map, file)
             if _EPISODE_COUNT == 2 or _EPISODE_COUNT % 10 == 0:
                 append_qtable_csv(_EPISODE_COUNT, self.clusters_qtable.q_table, self.actions)
                 save_dataframes_to_csv(self.sub_clusters_qtable_list, _GAME_SUB_QTABLE_PATH)
@@ -1768,6 +1844,9 @@ def main(unused_argv):
         file.write("")
     with open(_GAME_ACTION_LOG_PATH, "w") as file:
         file.write("")
+    with open(_GAME_ACTION_PATH, "w") as file:
+        file.write("")
+    delete_folder(_GAME_SUB_QTABLE_PATH)
     delete_folder(_GAME_SUB_EPISODE_PATH)
     delete_folder(_GAME_SHORT_TERM_RESULT_PATH)
     steps = _STEP
@@ -1798,6 +1877,7 @@ def main(unused_argv):
                 # map_name="short_term_reward_1",
                 # map_name="weapon_range_test_1",
                 map_name="local_enemy_test_1",
+                # map_name="local_enemy_test_2",
                 players=[sc2_env.Agent(sc2_env.Race.terran),
                          # sc2_env.Agent(sc2_env.Race.terran)],
                          # sc2_env.Bot(sc2_env.Race.zerg, sc2_env.Difficulty.very_easy)],

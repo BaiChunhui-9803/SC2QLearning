@@ -16,6 +16,9 @@ def draw_manage(path):
     draw_clusters_result.drawClustersHealthResult(path)
     print('局部奖励可视化输出完成')
 
+def multi_draw_manage(path_list, title_list):
+    draw_game_data_plot.drawWinRateLineChart(path_list, title_list)
+
 if __name__ == '__main__':
     # 状态空间：(len(my_units), len(enemy_units)) 动作空间：action_TFC_finish, action_TNC_finish, action_noise 奖励值：null
     path010190NULL = './../datas/data_for_render/experiments_datas/LR10_RD10_nullReward/'
@@ -91,7 +94,7 @@ if __name__ == '__main__':
 
     #测试问题
     path_MM_Problem1 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Problem1/'
-
+    multi_draw_manage
     # 改进实验：双层模型
     path_TL_MM_8 = './../datas/data_for_render/experiments_datas/two-layer/MM_8/'
     path_TL_MM_8_dist = './../datas/data_for_render/experiments_datas/two-layer/MM_8_dist/'
@@ -106,6 +109,18 @@ if __name__ == '__main__':
     path_SM_20 = './../datas/data_for_render/experiments_datas/two-layer-2/MM_8_20/'
 
     path_TL_MM_8_stR = './../datas/data_for_render/experiments_datas/shorttermR/shorttermR/'
-    # path_TL_MM_8_stR2 = './../datas/data_for_render/experiments_datas/shorttermR/shorttermR2/'
 
-    draw_manage(path_TL_MM_8_stR)
+    path_action1 = './../datas/data_for_render/experiments_datas/shorttermR/action1/'
+    path_action2 = './../datas/data_for_render/experiments_datas/shorttermR/action2/'
+    path_action2_13 = './../datas/data_for_render/experiments_datas/shorttermR/action2_13/'
+    path_action2_24 = './../datas/data_for_render/experiments_datas/shorttermR/action2_24/'
+    path_action3 = './../datas/data_for_render/experiments_datas/shorttermR/action3/'
+    path_action4 = './../datas/data_for_render/experiments_datas/shorttermR/action4/'
+    path_action5 = './../datas/data_for_render/experiments_datas/shorttermR/action5/'
+    path_action6 = './../datas/data_for_render/experiments_datas/shorttermR/action6/'
+
+    draw_manage(path_action4)
+    path_list = [path_action2, path_action2_13, path_action2_24, path_action3, path_action4, path_action5, path_action1]
+    title_list = ['2action-nN_____', '2action-n_w____', '2action-_N_W___', '3action-nNw____',
+                  '4action-nNwW___', '5action-_N_Wtlg', '1action-n______']
+    multi_draw_manage(path_list, title_list)

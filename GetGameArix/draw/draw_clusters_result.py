@@ -236,7 +236,7 @@ def update_enemy_tag_list(unit_list):
 
 def drawClustersHealthResult(path):
     tab = Tab()
-    for file_id in range(1, 10):
+    for file_id in range(1, 500):
         if file_id == 1 or file_id % 10 == 0:
             file_name = str(file_id) + '.csv'
             file_path = path + 'sub_episode/'
@@ -397,7 +397,7 @@ def drawClustersHealthResult(path):
                     game_health_dict = {'self_units': positive_mean, 'enemy_units': negative_mean}
                     # print(result_dict[step_key].strip(' ')[1])
                     # print(int(result_dict[step_key].split()[1]))
-                    grid_r_kill_list.append(float(result_dict[step_key][0]))
+                    grid_r_kill_list.append(float(result_dict[step_key].split()[0]))
                     grid_r_fall_list.append(float(result_dict[step_key].split()[1]))
                     grid_r_inferior_list.append(float(result_dict[step_key].split()[2]))
                     grid_r_dominant_list.append(float(result_dict[step_key].split()[3]))
