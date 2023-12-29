@@ -50,8 +50,8 @@ _ENEMY_UNIT_TYPE = 48
 _ENEMY_UNIT_TYPE_ARG = units.Terran.Marine
 _BOUNDARY_WIDTH = 2
 
-_MY_UNITS_NUMBER = 4
-_ENEMY_UNITS_NUMBER = 4
+_MY_UNITS_NUMBER = 8
+_ENEMY_UNITS_NUMBER = 8
 _STEP_MUL = 10
 _STEP = 250 / _STEP_MUL * _MY_UNITS_NUMBER / 4
 _MAX_INFLUENCE = 25 * _ENEMY_UNITS_NUMBER
@@ -569,8 +569,6 @@ class QLearningTable:
 
     # def choose_action(self, observation, e_greedy=0.9):
     def choose_action(self, observation, e_greedy=0.9):
-        # print(observation)
-        # print(e_greedy)
         self.check_state_exist(observation)
         # print(state_index)
         # print(self.q_table)
@@ -679,9 +677,9 @@ class Agent(base_agent.BaseAgent):
         "action_ATK_clu_nearest",
         "action_ATK_nearest_weakest",
         "action_ATK_clu_nearest_weakest",
-        # "action_ATK_threatening",
-        # "action_MIX_lure",
-        # "action_MIX_gather"
+        "action_ATK_threatening",
+        "action_MIX_lure",
+        "action_MIX_gather"
         # "do_nothing",
         # "action_"
         # "action_TFC_000",
@@ -1860,7 +1858,7 @@ def main(unused_argv):
                 # map_name="MarineMicro_MvsM_4_dist",
                 # map_name="MarineMicro_MvsM_8_dist",
                 # map_name="MarineMicro_MvsM_4_far",
-                # map_name="MarineMicro_MvsM_8_far",
+                map_name="MarineMicro_MvsM_8_far",
                 # map_name="MarineMicro_ZvsM_4",
                 # map_name="MarineMicro_MvsM_8_dilemma",
                 # map_name="MarineMicro_MvsM_8_dilemma_2",
@@ -1876,7 +1874,7 @@ def main(unused_argv):
                 # map_name="8_situation1_3",
                 # map_name="short_term_reward_1",
                 # map_name="weapon_range_test_1",
-                map_name="local_enemy_test_1",
+                # map_name="local_enemy_test_1",
                 # map_name="local_enemy_test_2",
                 players=[sc2_env.Agent(sc2_env.Race.terran),
                          # sc2_env.Agent(sc2_env.Race.terran)],

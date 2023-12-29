@@ -16,8 +16,8 @@ def draw_manage(path):
     draw_clusters_result.drawClustersHealthResult(path)
     print('局部奖励可视化输出完成')
 
-def multi_draw_manage(path_list, title_list):
-    draw_game_data_plot.drawWinRateLineChart(path_list, title_list)
+def multi_draw_manage(path_list, title_list, separate, separate_title_list):
+    draw_game_data_plot.drawWinRateLineChart(path_list, title_list, separate, separate_title_list)
 
 if __name__ == '__main__':
     # 状态空间：(len(my_units), len(enemy_units)) 动作空间：action_TFC_finish, action_TNC_finish, action_noise 奖励值：null
@@ -111,16 +111,125 @@ if __name__ == '__main__':
     path_TL_MM_8_stR = './../datas/data_for_render/experiments_datas/shorttermR/shorttermR/'
 
     path_action1 = './../datas/data_for_render/experiments_datas/shorttermR/action1/'
+    path_action1_2 = './../datas/data_for_render/experiments_datas/shorttermR/action1_2/'
+    path_action1_clu = './../datas/data_for_render/experiments_datas/shorttermR/action1_clu/'
+    path_action1_clu_2 = './../datas/data_for_render/experiments_datas/shorttermR/action1_clu_2/'
+    path_action1_random = './../datas/data_for_render/experiments_datas/shorttermR/action1_random/'
+    path_action1_random_2 = './../datas/data_for_render/experiments_datas/shorttermR/action1_random_2/'
     path_action2 = './../datas/data_for_render/experiments_datas/shorttermR/action2/'
+    path_action2_2 = './../datas/data_for_render/experiments_datas/shorttermR/action2_2/'
     path_action2_13 = './../datas/data_for_render/experiments_datas/shorttermR/action2_13/'
+    path_action2_13_2 = './../datas/data_for_render/experiments_datas/shorttermR/action2_13_2/'
+    path_action2_13_3 = './../datas/data_for_render/experiments_datas/shorttermR/action2_13_3/'
     path_action2_24 = './../datas/data_for_render/experiments_datas/shorttermR/action2_24/'
+    path_action2_24_2 = './../datas/data_for_render/experiments_datas/shorttermR/action2_24_2/'
     path_action3 = './../datas/data_for_render/experiments_datas/shorttermR/action3/'
     path_action4 = './../datas/data_for_render/experiments_datas/shorttermR/action4/'
+    path_action4_2 = './../datas/data_for_render/experiments_datas/shorttermR/action4_2/'
     path_action5 = './../datas/data_for_render/experiments_datas/shorttermR/action5/'
     path_action6 = './../datas/data_for_render/experiments_datas/shorttermR/action6/'
+    path_8far_action7_s5 = './../datas/data_for_render/experiments_datas/shorttermR/8far_action7_s5/'
+    path_8far_action7_s5_2 = './../datas/data_for_render/experiments_datas/shorttermR/8far_action7_s5_2/'
+    path_8far_action7_s5_3 = './../datas/data_for_render/experiments_datas/shorttermR/8far_action7_s5_3/'
+    path_8far_action7_s5_4 = './../datas/data_for_render/experiments_datas/shorttermR/8far_action7_s5_4/'
+    path_8far_action7_s10 = './../datas/data_for_render/experiments_datas/shorttermR/8far_action7_s10/'
+    path_8far_action7_s10_2 = './../datas/data_for_render/experiments_datas/shorttermR/8far_action7_s10_2/'
+    path_8far_action7_s10_3 = './../datas/data_for_render/experiments_datas/shorttermR/8far_action7_s10_3/'
+    path_8far_action7_s10_4 = './../datas/data_for_render/experiments_datas/shorttermR/8far_action7_s10_4/'
+    path_8far_action7_s15 = './../datas/data_for_render/experiments_datas/shorttermR/8far_action7_s15/'
+    path_8far_action7_s15_2 = './../datas/data_for_render/experiments_datas/shorttermR/8far_action7_s15_2/'
 
-    draw_manage(path_action4)
-    path_list = [path_action2, path_action2_13, path_action2_24, path_action3, path_action4, path_action5, path_action1]
-    title_list = ['2action-nN_____', '2action-n_w____', '2action-_N_W___', '3action-nNw____',
-                  '4action-nNwW___', '5action-_N_Wtlg', '1action-n______']
-    multi_draw_manage(path_list, title_list)
+
+    path_8far_action2_24_1 = './../datas/data_for_render/experiments_datas/shorttermR/8far_action2_24_1/'
+    path_8far_action2_24_2 = './../datas/data_for_render/experiments_datas/shorttermR/8far_action2_24_2/'
+
+    path_8far_action7_2 = './../datas/data_for_render/experiments_datas/shorttermR/8far_action7_2/'
+    path_8far_action7_3 = './../datas/data_for_render/experiments_datas/shorttermR/8far_action7_3/'
+
+
+
+    # draw_manage(path_action4_2)
+    # path_list = [path_action2, path_action2_13, path_action2_24, path_action3, path_action4, path_action5, path_8far_action7, path_action1]
+    # title_list = ['2action-nN_____', '2action-n_w____', '2action-_N_W___', '3action-nNw____',
+    #               '4action-nNwW___', '5action-_N_Wtlg', '7action-nNwWtlg', '1action-n______']
+    # path_list = [path_action2, path_action3, path_action4, path_action5,
+    #              path_8far_action7_s5, path_8far_action7_s10_4, path_action1]
+    # title_list = ['2action-nN_____', '3action-nNw____', '4action-nNwW___', '5action-_N_Wtlg',
+    #               '7action-nNwWtlg', '7action_2', '1action-n______']
+    # path_list = [path_8far_action7_s10, path_8far_action7_s10_2, path_8far_action7_s10_3, path_8far_action7_s10_4]
+    # title_list = ['s10_1', 's10_2', 's10_3', 's10_4']
+    # path_list = [path_action2, path_action2_13, path_action2_24, path_action3, path_action4, path_action5, path_8far_action7_s10_4, path_action1]
+    # title_list = ['2action-nN_____', '2action-n_w____', '2action-_N_W___', '3action-nNw____', '4action-nNwW___', '5action-_N_Wtlg',
+    #               '7action-nNwWtlg', '1action-n______']
+
+    # 4Mix
+    # path_list = [path_action2, path_action2_2,
+    #              path_action2_13_2, path_action2_13_3,
+    #              path_action2_24, path_action2_24_2,
+    #              path_action4, path_action4_2,
+    #              path_action1, path_action1_2,
+    #              path_action1_random, path_action1_random_2
+    #              ]
+    # title_list = ['2action-nN_____-1', '2action-nN_____-2',
+    #               '2action-n_w____-2', '2action-n_w____-3',
+    #               '2action-_N_W___-1', '2action-_N_W___-2',
+    #               '4action-nNwW___-1', '4action-nNwW___-2',
+    #               '1action-n______-1', '1action-n______-2',
+    #               '1action-random-1', '1action-random-2']
+    # separate = [2,
+    #             2,
+    #             2,
+    #             2,
+    #             2,
+    #             2
+    #             ]
+    # separate_title_list = ['2action_12',
+    #                        '2action_13',
+    #                        '2action_24',
+    #                        '4action',
+    #                        '1action_1',
+    #                        '1action_random',
+    #                        ]
+
+    # 8far
+    # path_list = [path_8far_action7_s5, path_8far_action7_s5_2, path_8far_action7_s5_4,
+    #              path_8far_action7_s10, path_8far_action7_s10_2, path_8far_action7_s10_3, path_8far_action7_s10_4,
+    #              path_8far_action7_s15, path_8far_action7_s15_2,
+    #              ]
+    # title_list = ['s5_1', 's5_2', 's5_4',
+    #               's10_1', 's10_2', 's10_3', 's10_4',
+    #               's15_1', 's15_2',
+    #               ]
+    # separate = [3,
+    #             4,
+    #             2,
+    #             ]
+    # separate_title_list = ['s5',
+    #                        's10',
+    #                        's15',
+    #                        ]
+
+    # 8far_action2
+    path_list = [path_8far_action2_24_1, path_8far_action2_24_2,
+                 path_8far_action7_s10_2, path_8far_action7_s10_4, path_8far_action7_3,
+                 ]
+    title_list = [
+                  '2action-_N_W___-1', '2action-_N_W___-2',
+                  '7action-nNwWtlg-1', '7action-nNwWtlg-2', '7action-nNwWtlg-3',
+                  ]
+    separate = [2,
+                3,
+                ]
+    separate_title_list = [
+                           '2action_24',
+                           '7action',
+                           ]
+
+
+
+    # path_list = [path_8far_action7_s10, path_8far_action7_s10_2, path_8far_action7_s10_3, path_8far_action7_s10_4,
+    #              path_8far_action7_s15, path_8far_action7_s15_2]
+    # title_list = ['s10_1', 's10_2', 's10_3', 's10_4', 's15_1', 's15_2']
+    # separate = [4, 2]
+    # separate_title_list = ['s10', 's15']
+    multi_draw_manage(path_list, title_list, separate, separate_title_list)

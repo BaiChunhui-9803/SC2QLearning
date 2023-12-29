@@ -5,6 +5,8 @@ import pandas as pd
 import seaborn as sns
 import csv
 import random
+import statistics
+import math
 
 
 def smooth_xy(lx, ly):
@@ -359,7 +361,7 @@ def drawQTableMap(path):
     # 输出每一列的和
     print(col_sums)
 
-def drawWinRateLineChart(path_list, title_list):
+def drawWinRateLineChart(path_list, title_list, separate, separate_title_list):
     win_rate = []
     for index, path in enumerate(path_list):
         result = []
@@ -369,11 +371,39 @@ def drawWinRateLineChart(path_list, title_list):
             for line in lines:
                 result.append(line.split()[0])
             for i in range(len(result)):
-                start_index = max(0, i - 19)  # 计算起始节点的索引
+                start_index = max(0, i - 24)  # 计算起始节点的索引
                 win_count = result[start_index:i + 1].count("Win")  # 统计第i-20到第i个节点中"Win"的次数
                 win_rate[index].append(win_count / (i - start_index + 1))
+                # win_rate[index].append(win_count / 25)
         # print(win_rate)
         # plt.plot(range(len(win_rate)), win_rate, c='lavender', label='Num of Overlapping Action')
+    upper_quarter_avg_win_rate = []
+    lower_quarter_avg_win_rate = []
+    # win_rate_separate = [win_rate[i:j] for i, j in zip([0] + separate, separate + [None])]
+    win_rate_separate = []
+    # data = ['s5_1', 's5_2', 's5_3', 's10_1', 's10_2', 's10_3', 's10_4', 's15_1', 's15_2']
+    cnt = 0
+    for i in separate:
+        win_rate_separate.append([win_rate[cnt:cnt + i]])
+        cnt = cnt + i
+    # print(len(win_rate_separate[0][0]), len(win_rate_separate[1][0]))
+    # result = [data[i:j] for i, j in zip([0] + separate, separate + [None])]
+    # print(result)
+    # print(len(win_rate_separate[3]))
+    avg_win_rate = []
+    std_win_rate = []
+    avg_plus_std_win_rate = []
+    avg_minus_std_win_rate = []
+    for col in win_rate_separate:
+        # print((col[0]))
+        avg_win_rate.append([sum(colx) / len(colx) for colx in zip(*col[0])])
+        std_win_rate.append([np.std(colx) / np.sqrt(len(colx)) for colx in zip(*col[0])])
+        # min_win_rate.append([np.std(colx) / np.sqrt(len(colx)) for colx in zip(*col[0])])
+    # print(win_rate_separate)
+    # avg_win_rate = [len(ind) for ind in (col[0]) for col in win_rate_separate]
+    # print(avg_win_rate)
+    # max_win_rate = [max(col) for col in zip(*win_rate)]
+    # min_win_rate = [min(col) for col in zip(*win_rate)]
 
     # plt.clf()
     # fig = plt.figure(dpi=500, figsize=(8, 4))
@@ -381,8 +411,9 @@ def drawWinRateLineChart(path_list, title_list):
     # colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange']
     # '-', '--', '-.', ':', 'None', ' ', '', 'solid', 'dashed', 'dashdot', 'dotted'
     # linestyles = ['-', '-', '-', '-', '--', '--', '--', '--']
-    colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'gray']
-    linestyles = ['-', '--', '-.', '-', '--', '-.', ':']
+    # colors = ['red', 'blue', 'green', 'orange', 'purple', 'yellow', 'brown', 'gray']
+    colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange', 'red']
+    linestyles = ['-', '-', '-', '-', '--', '--', '--', '--', '-.']
 
     x = list(range(0, len(win_rate[0])))
     fig, ax = plt.subplots()
@@ -394,10 +425,33 @@ def drawWinRateLineChart(path_list, title_list):
     fig.subplots_adjust(hspace=0.5)  # 调整纵向间距
     # ax.tight_layout()  # 自动调整整体布局
     # ax.show()
-    ax.set_title('Win Rate of Nearly 20 Game Episodes')
+    ax.set_title('Win Rate of Nearly 25 Game Episodes')
     ax.set_xlabel('Game Episode')
     ax.set_ylabel('Win Rate')
     fig.savefig('./output/drawWinRateLineChart.png', dpi=500, bbox_inches='tight')
+    # plt.show()
+    plt.clf()
+    plt.figure(figsize=(12, 6))
+    p0 = []
+    p1 = []
+    # fig.set_size_inches(12, 6)
+    # all_colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange', 'red']
+    colors = ['red', 'blue', 'green', 'orange', 'gray', 'brown']
+    linestyles = ['-', '-', '-', '-', '-', '-', '-', '-', '-']
+    for i, (y, y_std, color, linestyle) in enumerate(zip(avg_win_rate, std_win_rate, colors, linestyles)):
+        p0.append(plt.plot(x, y, label=title_list[i], color=color, linestyle=linestyle, linewidth=1))
+        plt.fill_between(x, [y1 - y2 for y1, y2 in zip(y, y_std)], [y1 + y2 for y1, y2 in zip(y, y_std)], color=color, alpha=0.1)
+        p1.append(plt.fill(np.NaN, np.NaN, color=color, alpha=0.1))
+    # plt.title('Average Win Rate of Nearly 25 Game Episodes')
+    plt.xlabel('Game Episode')
+    plt.ylabel('Win Rate')
+    plt.legend([(x[0], y[0]) for x, y in zip(p1, p0)], separate_title_list,
+               loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=6, frameon=False)
+    plt.savefig('./output/drawAvgWinRateLineChart.png', dpi=500, bbox_inches='tight')
+    # plt.plot(x, avg_win_rate)
+    # plt.fill_between(x, min_win_rate, max_win_rate, alpha=0.5)
+    # plt.show()
+    # 1 - 0.5 / math.sqrt(x)
 
     # print(win_rate)
     # plt.show()
