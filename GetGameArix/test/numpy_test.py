@@ -1,60 +1,40 @@
-"""
-numpy test
-"""
+import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
-# 基本操作
-# 初始化 - 创建一个全0的numpy数组
-n0 = np.zeros((3, 2))
-print(n0)
+# 读取图像
+image = cv2.imread('1.png')
+image2 = cv2.imread('2.png')
 
-# 初始化 - 创建一个全1的numpy数组
-n1 = np.ones((3, 2))
-print(n1)
+# 将图像转换为RGB格式
+color = ('blue', 'green', 'red')
+colors = ("b", "g", "r")
+# for i, Color in enumerate(color):
+    # hist = cv2.calcHist([image], [i], None, [8], [0.0, 256.0])
+    # plt.plot(hist, color=Color)
+    # plt.xlim([0, 7])
+(b, g, r) = cv2.split(image)
+bH = cv2.equalizeHist(b)
+gH = cv2.equalizeHist(g)
+rH = cv2.equalizeHist(r)
+equ2 = cv2.merge((bH, gH, rH))
+chans2 = cv2.split(equ2)
+r_list = []
+g_list = []
+b_list = []
+for (chans2, color) in zip(chans2, colors):
+    hist = cv2.calcHist([chans2], [0], None, [8], [0, 256])
+    # 256 灰度级的个数 bins / histSize
+    plt.plot(hist, color=color)
+    plt.fill_between(np.arange(len(hist)), hist.flatten(), color=color, alpha=0.2)
+    # ax.xlim([0, 256])
 
-# 向量化 - 由数组创建numpy数组
-na = np.array([1, 2, 3, 4, 5])
-print(na)
-
-# 获取数组尺寸 - shape属性
-print(n0.shape)
-
-# 递增/递减序列 - arange() numpy.arange(start, stop, step)
-nk1 = np.arange(3, 7)
-nk2 = np.arange(7, 3, -1)
-print(nk1, nk2)
-
-# 区间等距分布序列 - linspace() numpy.linspace(start, stop, num)
-nlin = np.linspace(0, 1, 5)
-print(nlin)
-
-# 产生随机值为0-1的序列 - nd.random.rand(row, line)
-nr = np.random.rand(2, 4)
-print(nr)
-
-# 基本运算
-# 四则运算 - 相同尺寸的数组可以直接进行四则运算
-a = np.array([1, 2, 3])
-b = np.array([4, 5, 6])
-print(a + b, a / b)
-
-# 点乘: 向量进行点乘运算 - np.dot()
-print(np.dot(a, b))
-
-# 矩阵乘法运算 - a @ b 等价于 np.matmul()
-print(a @ b)
-
-# 求平方根 - np.sqrt()
-print(np.sqrt(a))
-
-# 指数运算 - np.power()
-print(np.power(a, 2))
-
-# 特殊运算
-# 不同大小的矩阵进行运算时会自动扩充为相同大小, 所扩充的元素等同于原始元素
-a = np.array([[1], [10], [20]])
-b = np.array([0, 1, 2])
-print(a + b)
-
-# 获取矩阵中的最大、最小值
-print(a.min(), a.max())
+# plt.show()
+plt.savefig('hashimg.png', dpi=500, bbox_inches='tight')
+#
+# for i, Color in enumerate(color):
+#     hist = cv2.calcHist([image2], [i], None, [8], [0.0, 256.0])
+#     plt.plot(hist, color=Color)
+#     plt.xlim([0, 7])
+#
+# plt.show()

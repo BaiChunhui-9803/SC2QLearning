@@ -50,8 +50,8 @@ _ENEMY_UNIT_TYPE = 48
 _ENEMY_UNIT_TYPE_ARG = units.Terran.Marine
 _BOUNDARY_WIDTH = 2
 
-_MY_UNITS_NUMBER = 4
-_ENEMY_UNITS_NUMBER = 4
+_MY_UNITS_NUMBER = 8
+_ENEMY_UNITS_NUMBER = 8
 _STEP_MUL = 10
 _STEP = 250 / _STEP_MUL * _MY_UNITS_NUMBER / 4
 _MAX_INFLUENCE = 25 * _ENEMY_UNITS_NUMBER
@@ -77,6 +77,13 @@ _EPISODE_QTABLE_PATH = "datas/data_for_transit/episode_q_table.csv"
 _GAME_SUB_EPISODE_PATH = "datas/data_for_transit/sub_episode"
 _GAME_SHORT_TERM_RESULT_PATH = "datas/data_for_transit/short_term_result"
 _GAME_ACTION_PATH = "datas/data_for_transit/action.csv"
+
+# _OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/shorttermR_1500/8far_action7_s10_1"
+_OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/shorttermR/8far_action7_s10_2"
+
+
+_CNT_SUB_INDEX = 0
+_CNT_STATE = 0
 
 def save_dataframes_to_csv(dataframes_dict, folder):
     # print(dataframes_dict.items())
@@ -588,8 +595,10 @@ class QLearningTable:
         # print(self.q_table)
         if np.random.uniform() < e_greedy:
             state_action = self.q_table.loc[observation, :]
+            # print(observation, state_action)
             action = np.random.choice(
                 state_action[state_action == np.max(state_action)].index)
+            # print(action)
         else:
             action = np.random.choice(self.actions)
         return action
@@ -616,6 +625,8 @@ class QLearningTable:
         # print(self.q_table.index)
         # if len(state_vec) == 0 or type(observation) == str:
         if state not in self.q_table.index:
+            global _CNT_STATE
+            _CNT_STATE += 1
             # state_vec.append((str(len(state_vec)), observation))
             self.q_table = pd.concat([self.q_table, pd.Series([0] * len(self.actions),
                                                               index=self.q_table.columns,
@@ -998,7 +1009,9 @@ class SmartAgent(Agent):
 
     def update_sub_clusters_qtable_list(self, clu_lists):
         sub_table_tag = (clu_lists[0], clu_lists[1])
+        global _CNT_SUB_INDEX
         if not self.check_sub_table_exist(sub_table_tag):
+            _CNT_SUB_INDEX += 1
             self.sub_clusters_qtable_list.update({sub_table_tag: QLearningTable(self.actions)})
             self.previous_combat_state.update({sub_table_tag: None})
             self.previous_combat_action.update({sub_table_tag: None})
@@ -1502,6 +1515,20 @@ class SmartAgent(Agent):
         # print(reward)
         return reward
 
+    # 20240108
+    # 从离线数据导入到模型
+    def update_model_from_data(self, data_path):
+        self.clusters_qtable.q_table = pd.read_csv(data_path + '/q_table.csv', index_col=0)
+        # print(self.clusters_qtable.q_table)
+        for sub_filename in os.listdir(data_path + '/sub_q_table'):
+            if sub_filename.endswith('.csv'):
+                sub_filepath = os.path.join(data_path + '/sub_q_table', sub_filename)
+                sub_qtable = QLearningTable(self.actions)
+                sub_qtable.q_table = pd.read_csv(sub_filepath, index_col=0)
+                self.sub_clusters_qtable_list.update({eval(sub_filename.strip('.csv')): sub_qtable})
+        # print(self.sub_clusters_qtable_list[(1, 0.0)].q_table)
+        return
+
     def __init__(self):
         super(SmartAgent, self).__init__()
         # self.previous_state = None
@@ -1650,6 +1677,8 @@ class SmartAgent(Agent):
         # print(obs.observation.game_loop)
         unit_list_my = []
         if obs.first():
+            global _OFFLINE_DATA_DIR_PATH
+            self.update_model_from_data(_OFFLINE_DATA_DIR_PATH)
             global _EPISODE_COUNT
             _EPISODE_COUNT += 1
             # self.print_units_name(obs)
@@ -1700,10 +1729,12 @@ class SmartAgent(Agent):
         # array_to_pil_img(self.get_window_im(obs), False)
 
         state_im = str(self.get_state(obs))
+        # print(state_im)
         # state = len(state_vec)
         # !!!!!!!
         # action = self.actions[2]
-        cluster_item = self.clusters_qtable.choose_action(state_im, 1 - 0.5 / math.sqrt(_EPISODE_COUNT - 1))
+        cluster_item = self.clusters_qtable.choose_best_action(state_im)
+        # cluster_item = self.clusters_qtable.choose_best_action(state_im, 1 - 0.5 / math.sqrt(_EPISODE_COUNT - 1))
         cluster_result = getattr(self, cluster_item)(obs)
         cluster_health_result = self.get_clusters_health(cluster_result, my_units, enemy_units)
         save_clusters_health_to_csv(cluster_health_result, _GAME_SUB_EPISODE_PATH, _EPISODE_COUNT,
@@ -1717,10 +1748,12 @@ class SmartAgent(Agent):
         # macro_action_item = self.actions[0]
         self.sub_clusters_qtable_tag = (cluster_result[0], cluster_result[1])
         state_clu = self.get_state_clu(cluster_result)
+        # print(state_clu)
         # print(self.sub_clusters_qtable_tag, self.sub_clusters_qtable_list)
-        combat_action_item = self.sub_clusters_qtable_list[self.sub_clusters_qtable_tag].choose_action(state_clu,
-                                                                                                       1 - 0.5 / math.sqrt(
-                                                                                                           _EPISODE_COUNT - 1))
+        combat_action_item = self.sub_clusters_qtable_list[self.sub_clusters_qtable_tag].choose_best_action(state_clu)
+        # combat_action_item = self.sub_clusters_qtable_list[self.sub_clusters_qtable_tag].choose_best_action(state_clu,
+        #                                                                                                     1 - 0.5 / math.sqrt(
+        #                                                                                                         _EPISODE_COUNT - 1))
         with open(_GAME_ACTION_LOG_PATH, "a") as file:
             file.write(str(self.clusters.index(cluster_item)) + str(self.actions.index(combat_action_item) + 3))
 
@@ -1768,26 +1801,33 @@ class SmartAgent(Agent):
         # action = random.choice(self.actions)
         # print(obs.reward)
         # print(self.previous_action, reward_cumulative)
+
         # todo
-        if self.previous_clu_action is not None:
-            self.clusters_qtable.learn(self.previous_clu_state,
-                                       self.previous_clu_action,
-                                       # obs.reward,
-                                       reward_cumulative,
-                                       'terminal' if obs.last() else state_im)
+        # if self.previous_clu_action is not None:
+        #     self.clusters_qtable.learn(self.previous_clu_state,
+        #                                self.previous_clu_action,
+        #                                # obs.reward,
+        #                                reward_cumulative,
+        #                                'terminal' if obs.last() else state_im)
+        #
+        # # print(self.previous_combat_action[self.sub_clusters_qtable_tag])
+        #
+        # if self.previous_combat_action != {}:
+        #     # print(self.previous_combat_action)
+        #     if self.previous_combat_action[self.sub_clusters_qtable_tag] is not None:
+        #         self.sub_clusters_qtable_list[self.sub_clusters_qtable_tag].learn(
+        #             self.previous_combat_state[self.sub_clusters_qtable_tag],
+        #             self.previous_combat_action[self.sub_clusters_qtable_tag],
+        #             # obs.reward,
+        #             # attr - reward
+        #             # reward_cumulative,
+        #             self.cul_short_term_reward(self.previous_reward),
+        #             'terminal' if obs.last() else state_clu)
+        #         # print(self.sub_clusters_qtable_list[self.sub_clusters_qtable_tag].q_table)
+        #
 
-        # print(self.previous_combat_state, self.previous_combat_action)
 
-        if self.previous_combat_action[self.sub_clusters_qtable_tag] is not None:
-            self.sub_clusters_qtable_list[self.sub_clusters_qtable_tag].learn(
-                self.previous_combat_state[self.sub_clusters_qtable_tag],
-                self.previous_combat_action[self.sub_clusters_qtable_tag],
-                # obs.reward,
-                # attr - reward
-                # reward_cumulative,
-                self.cul_short_term_reward(self.previous_reward),
-                'terminal' if obs.last() else state_clu)
-            # print(self.sub_clusters_qtable_list[self.sub_clusters_qtable_tag].q_table)
+
         # print(obs.observation['score_cumulative'])
         # print(self.qtable.q_table)
         # print('observation', dir(obs.observation))
@@ -1801,6 +1841,7 @@ class SmartAgent(Agent):
         # print()
 
         if obs.last():
+            print('下层模型新增量: ', _CNT_SUB_INDEX, '全模型状态新增量: ', _CNT_STATE)
             plt.close()
             matplotlib.pyplot.figure().clear()
             matplotlib.pyplot.close()
@@ -1863,12 +1904,13 @@ def main(unused_argv):
                 # map_name="MarineMicro_MvsM_4_far",
                 # map_name="MarineMicro_MvsM_8_far",
                 # map_name="MarineMicro_MvsM_8_far_2",
+                # map_name="MarineMicro_MvsM_8_far_3",
                 # map_name="MarineMicro_ZvsM_4",
                 # map_name="MarineMicro_MvsM_8_dilemma",
                 # map_name="MarineMicro_MvsM_8_dilemma_2",
                 # map_name="MarineMicro_MvsM_Problem1",
-                map_name="MarineMicro_MvsM_4_cross2",
-                # map_name="MarineMicro_MvsM_4_cross2_2",
+                map_name="MarineMicro_MvsM_6_conga_line",
+                # map_name="MarineMicro_MvsM_6_conga_line_2",
                 # 测试用图
                 # map_name="4_clu_uni_0",
                 # map_name="4_clu_uni_0_5",
@@ -1904,7 +1946,7 @@ def main(unused_argv):
             # run_loop.run_loop([agent1, agent2], env, max_frames=10, max_episodes=1000)
             agent1 = SmartAgent()
             agent2 = Agent()
-            run_loop.run_loop([agent1, agent2], env, max_episodes=1500)
+            run_loop.run_loop([agent1, agent2], env, max_episodes=500)
     except KeyboardInterrupt:
         pass
 

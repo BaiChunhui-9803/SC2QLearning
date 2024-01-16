@@ -63,6 +63,7 @@ def drawClustersResult_unit4(path):
                     .add_xaxis(xaxis_data=x_data)
                     .add_yaxis(
                     series_name="",
+                    yaxis_index=0,
                     y_axis=y_data,
                     symbol_size=20,
                     label_opts=opts.LabelOpts(is_show=False),
@@ -83,7 +84,7 @@ def drawClustersResult_unit4(path):
                         min_=y_min - 1,
                         max_=y_max + 1
                     ),
-                    tooltip_opts=opts.TooltipOpts(is_show=False),
+                    # tooltip_opts=opts.TooltipOpts(is_show=False),
                     title_opts=opts.TitleOpts(
                         title="Cluster Result for 4 Units: Sample{}".format(i),
                         subtitle="clu_uniformity: {}, clu_crowding: {}".format(list4[i][1], list4[i][2]),
@@ -147,6 +148,7 @@ def drawClustersResult_unit8(path):
                     Scatter()
                         .add_xaxis(xaxis_data=x_data)
                         .add_yaxis(
+                        yaxis_index=0,
                         series_name="",
                         y_axis=y_data,
                         symbol_size=20,
@@ -168,7 +170,7 @@ def drawClustersResult_unit8(path):
                             min_=y_min - 1,
                             max_=y_max + 1
                         ),
-                        tooltip_opts=opts.TooltipOpts(is_show=False),
+                        # tooltip_opts=opts.TooltipOpts(is_show=False),
                         title_opts=opts.TitleOpts(
                             title="Cluster Result for {} Units: Sample{}".format(list_idx + 1, i),
                             subtitle="clu_uniformity: {}, clu_crowding: {}".format(list_all[list_idx][i][1],
@@ -234,9 +236,9 @@ def update_enemy_tag_list(unit_list):
             enemy_tag_list.append(unit[0])
 
 
-def drawClustersHealthResult(path):
+def drawClustersHealthResult(path, maxStep=500):
     tab = Tab()
-    for file_id in range(1, 500):
+    for file_id in range(1, maxStep):
         if file_id == 1 or file_id % 10 == 0:
             file_name = str(file_id) + '.csv'
             file_path = path + 'sub_episode/'
@@ -389,10 +391,10 @@ def drawClustersHealthResult(path):
                     negative_mean = round(negative_sum / negative_count if negative_count > 0 else 0, 2)
                     grid_y2_list.append(negative_mean)
                     positive_live_mean = round(
-                        positive_live_sum / positive_live_count if positive_live_count > 0 else 0, 2)
+                        positive_live_sum if positive_live_count > 0 else 0, 2)
                     grid_y3_list.append(positive_live_mean)
                     negative_live_mean = round(
-                        negative_live_sum / negative_live_count if negative_live_count > 0 else 0, 2)
+                        negative_live_sum if negative_live_count > 0 else 0, 2)
                     grid_y4_list.append(negative_live_mean)
                     game_health_dict = {'self_units': positive_mean, 'enemy_units': negative_mean}
                     # print(result_dict[step_key].strip(' ')[1])
@@ -409,12 +411,18 @@ def drawClustersHealthResult(path):
                     x_max = max(x_data)
                     y_min = min(y_data)
                     y_max = max(y_data)
+                    # x_min = 0
+                    # x_max = 100
+                    # y_min = 0
+                    # y_max = 100
                     grid = Grid()
                     scatter = (
                         Scatter()
                             .add_xaxis(xaxis_data=x_list)
                             .add_yaxis(
+                            yaxis_index=0,
                             series_name="",
+                            # xaxis_index=2,
                             y_axis=new_y_list,
                             symbol_size=20,
                             color='green',
@@ -444,12 +452,13 @@ def drawClustersHealthResult(path):
                                 max_=y_max + 1
                             ),
                             visualmap_opts=opts.VisualMapOpts(
-                                type_="color", max_=len(step_value.keys()) - 2, min_=-1, dimension=4
+                                type_="color", max_=len(step_value.keys()) - 2, min_=-1, dimension=4,
+                                series_index=0,
                             ),
                             legend_opts=opts.LegendOpts(pos_top="5%", pos_left="5%"),
                             title_opts=opts.TitleOpts(
-                                title=json.dumps(game_health_dict).strip('\{\}').replace('"', ""),
-                                subtitle=json.dumps(clusters_health_dict).strip('\{\}').replace('"', ""),
+                                # title=json.dumps(game_health_dict).strip('\{\}').replace('"', ""),
+                                # subtitle=json.dumps(clusters_health_dict).strip('\{\}').replace('"', ""),
                                 pos_top='0%',  # 标题的垂直位置
                                 pos_left='center',  # 标题的水平位置
                                 title_textstyle_opts=opts.TextStyleOpts(
@@ -468,69 +477,138 @@ def drawClustersHealthResult(path):
                         Line()
                             .add_xaxis(grid_x_list)
                             .add_yaxis("selfliveHm", grid_y1_list, is_smooth=True,
-                                       symbol='',
-                                       linestyle_opts=opts.LineStyleOpts(color="red"),
-                                       itemstyle_opts=opts.ItemStyleOpts(color="red", color0="red",
-                                                                         border_color="red"),
-                                       label_opts=opts.LabelOpts(is_show=False, color="red")
+                                       symbol='circle',
+                                       xaxis_index=1,
+                                       yaxis_index=1,
+                                       linestyle_opts=opts.LineStyleOpts(color="#E33350"),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="#E33350", color0="#E33350",
+                                                                         border_color="#E33350"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="#E33350")
                                        # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='red')
                                        )
                             .add_yaxis("enemyliveHm", grid_y2_list, is_smooth=True,
-                                       symbol='',
-                                       linestyle_opts=opts.LineStyleOpts(color="blue"),
-                                       itemstyle_opts=opts.ItemStyleOpts(color="blue", color0="blue",
-                                                                         border_color="blue"),
-                                       label_opts=opts.LabelOpts(is_show=False, color="blue")
+                                       symbol='circle',
+                                       xaxis_index=1,
+                                       yaxis_index=1,
+                                       linestyle_opts=opts.LineStyleOpts(color="#0089F4"),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="#0089F4", color0="#0089F4",
+                                                                         border_color="#0089F4"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="#0089F4")
                                        # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='blue')
                                        )
-                            .add_yaxis("selfHm", grid_y3_list, is_smooth=True,
-                                       symbol='',
-                                       linestyle_opts=opts.LineStyleOpts(color="pink"),
-                                       itemstyle_opts=opts.ItemStyleOpts(color="pink", color0="pink",
-                                                                         border_color="pink"),
-                                       label_opts=opts.LabelOpts(is_show=False, color="pink")
-                                       # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='red')
-                                       )
-                            .add_yaxis("enemyHm", grid_y4_list, is_smooth=True,
-                                       symbol='',
-                                       linestyle_opts=opts.LineStyleOpts(color="skyblue"),
-                                       itemstyle_opts=opts.ItemStyleOpts(color="skyblue", color0="skyblue",
-                                                                         border_color="skyblue"),
-                                       label_opts=opts.LabelOpts(is_show=False, color="skyblue")
-                                       # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='blue')
-                                       )
-                            .add_yaxis("globalReward", [x - y for x, y in zip(grid_y3_list, grid_y4_list)],
-                                       is_smooth=True,
-                                       symbol='',
-                                       linestyle_opts=opts.LineStyleOpts(color="#228B3B"),
-                                       itemstyle_opts=opts.ItemStyleOpts(color="#228B3B", color0="#228B3B",
-                                                                         border_color="#228B3B"),
-                                       label_opts=opts.LabelOpts(is_show=False, color="#228B3B"),
-                                       areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='#228B3B')
-                                       )
+                            .extend_axis(
+                            yaxis=opts.AxisOpts(
+                                # is_inverse=True,
+                                axisline_opts=opts.AxisLineOpts(
+                                    linestyle_opts=opts.LineStyleOpts(color="#d14a61")
+                                ),
+                                axislabel_opts=opts.LabelOpts(formatter="{value}"), interval=100,
+                                position="right"
+                            )
+                        )
                             # .set_series_opts(
                             # areastyle_opts=opts.AreaStyleOpts(opacity=0.5),
                             # label_opts=opts.LabelOpts(is_show=True),
                             # )
                             .set_global_opts(
+                            # graphic_opts=opts.InitOpts(bg_color="#F0F0F0"),
                             xaxis_opts=opts.AxisOpts(
+                                grid_index=1,
                                 axistick_opts=opts.AxisTickOpts(is_align_with_label=True),
                                 is_scale=False,
                                 boundary_gap=False,
                             ),
+                            visualmap_opts=opts.VisualMapOpts(
+                                # is_show=False,
+                                # type_="color", max_=100, min_=0, dimension=4
+                            ),
+                            yaxis_opts=opts.AxisOpts(position="left",
+                                                     axislabel_opts=opts.LabelOpts(formatter="{value}"),
+                                                     splitline_opts=opts.SplitLineOpts(
+                                                         is_show=True, linestyle_opts=opts.LineStyleOpts(opacity=1)
+                                                     ),
+                                                     ),
+                            # tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross"),
                             legend_opts=opts.LegendOpts(pos_top="5%", pos_right="5%"),
                             # visualmap_opts=opts.VisualMapOpts(
                             #     type_="color", max_=1, min_=1
                             # ),
                         )
                     )
+                    line1 = (
+                        Line()
+                            .add_xaxis(grid_x_list)
+                            .add_yaxis("selfHm", grid_y3_list, is_smooth=True,
+                                       symbol='',
+                                       xaxis_index=1,
+                                       yaxis_index=2,
+                                       linestyle_opts=opts.LineStyleOpts(color="#E33350", width=0.5),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="#E33350"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="#E33350")
+                                       # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='red')
+                                       )
+                            .add_yaxis("enemyHm", grid_y4_list, is_smooth=True,
+                                       symbol='',
+                                       xaxis_index=1,
+                                       yaxis_index=2,
+                                       linestyle_opts=opts.LineStyleOpts(color="#0089F4", width=0.5),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="#0089F4"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="#0089F4")
+                                       # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='blue')
+                                       )
+                            .add_yaxis("globalReward", [x - y for x, y in zip(grid_y3_list, grid_y4_list)],
+                                       is_smooth=True,
+                                       symbol='',
+                                       xaxis_index=1,
+                                       yaxis_index=2,
+                                       linestyle_opts=opts.LineStyleOpts(color="#DDA0DD", width=0.5),
+                                       itemstyle_opts=opts.ItemStyleOpts(color="#DDA0DD"),
+                                       label_opts=opts.LabelOpts(is_show=False, color="#DDA0DD"),
+                                       areastyle_opts=opts.AreaStyleOpts(opacity=0.5, color='#DDA0DD')
+                                       )
+                            .set_series_opts(
+                            # areastyle_opts=opts.AreaStyleOpts(opacity=0.5),
+                            # label_opts=opts.LabelOpts(is_show=True),
+                        )
+                            .set_global_opts(
+                            xaxis_opts=opts.AxisOpts(
+                                grid_index=1,
+                                axistick_opts=opts.AxisTickOpts(is_align_with_label=True),
+                                is_scale=False,
+                                boundary_gap=False,
+                            ),
+                            yaxis_opts=opts.AxisOpts(
+                                type_="value",
+                                splitline_opts=opts.SplitLineOpts(
+                                    is_show=True, linestyle_opts=opts.LineStyleOpts(opacity=1)
+                                ),
+                            ),
+                            visualmap_opts=opts.VisualMapOpts(
+                                # is_show=False,
+                                # type_="color", max_=len(step_value.keys()) - 2, min_=-1, dimension=4
+                            ),
+                            # tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross"),
+                            legend_opts=opts.LegendOpts(pos_top="5%", pos_right="5%"),
+                            # visualmap_opts=opts.VisualMapOpts(
+                            #     type_="color", max_=1, min_=1
+                            # ),
+                        )
+                    )
+                    import copy
+                    line0 = line.overlap(line1).set_global_opts(
+                        # tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross"),
+                        legend_opts=opts.LegendOpts(pos_top="5%", pos_right="5%"),
+                    )
                     # y_data_2 = [list(map(float, data.split())) for data in result_dict.values()]
                     # y_data_2 = list(zip(*y_data_2))
+                    grid_x_list2 = grid_x_list
                     line2 = (
                         Line()
                             .add_xaxis(grid_x_list)
                             .add_yaxis("rKill", grid_r_kill_list, is_smooth=True,
                                        symbol='',
+                                       xaxis_index=2,
+                                       yaxis_index=3,
                                        linestyle_opts=opts.LineStyleOpts(color="#FF1F5B"),
                                        itemstyle_opts=opts.ItemStyleOpts(color="#FF1F5B", color0="#FF1F5B",
                                                                          border_color="#FF1F5B"),
@@ -539,6 +617,8 @@ def drawClustersHealthResult(path):
                                        )
                             .add_yaxis("rFall", grid_r_fall_list, is_smooth=True,
                                        symbol='',
+                                       xaxis_index=2,
+                                       yaxis_index=3,
                                        linestyle_opts=opts.LineStyleOpts(color="#009ADE"),
                                        itemstyle_opts=opts.ItemStyleOpts(color="#009ADE", color0="#009ADE",
                                                                          border_color="#009ADE"),
@@ -547,6 +627,8 @@ def drawClustersHealthResult(path):
                                        )
                             .add_yaxis("rOutperform", grid_r_inferior_list, is_smooth=True,
                                        symbol='',
+                                       xaxis_index=2,
+                                       yaxis_index=3,
                                        linestyle_opts=opts.LineStyleOpts(color="#F28522"),
                                        itemstyle_opts=opts.ItemStyleOpts(color="#F28522", color0="#F28522",
                                                                          border_color="#F28522"),
@@ -555,6 +637,8 @@ def drawClustersHealthResult(path):
                                        )
                             .add_yaxis("rUnderperform", grid_r_dominant_list, is_smooth=True,
                                        symbol='',
+                                       xaxis_index=2,
+                                       yaxis_index=3,
                                        linestyle_opts=opts.LineStyleOpts(color="#00CD6C"),
                                        itemstyle_opts=opts.ItemStyleOpts(color="#00CD6C", color0="#00CD6C",
                                                                          border_color="#00CD6C"),
@@ -563,6 +647,8 @@ def drawClustersHealthResult(path):
                                        )
                             .add_yaxis("rSelfH", grid_r_self_health_loss_ratio_list, is_smooth=True,
                                        symbol='',
+                                       xaxis_index=2,
+                                       yaxis_index=3,
                                        linestyle_opts=opts.LineStyleOpts(color="#AF58BA"),
                                        itemstyle_opts=opts.ItemStyleOpts(color="#AF58BA", color0="#AF58BA",
                                                                          border_color="#AF58BA"),
@@ -571,6 +657,8 @@ def drawClustersHealthResult(path):
                                        )
                             .add_yaxis("rEmemyH", grid_r_ememy_health_loss_ratio_list, is_smooth=True,
                                        symbol='',
+                                       xaxis_index=2,
+                                       yaxis_index=3,
                                        linestyle_opts=opts.LineStyleOpts(color="#FFC61E"),
                                        itemstyle_opts=opts.ItemStyleOpts(color="#FFC61E", color0="#FFC61E",
                                                                          border_color="#FFC61E"),
@@ -579,6 +667,8 @@ def drawClustersHealthResult(path):
                                        )
                             .add_yaxis("rFCoverage", grid_r_fire_coverage_list, is_smooth=True,
                                        symbol='',
+                                       xaxis_index=2,
+                                       yaxis_index=3,
                                        linestyle_opts=opts.LineStyleOpts(color="#A6761D"),
                                        itemstyle_opts=opts.ItemStyleOpts(color="#A6761D", color0="#A6761D",
                                                                          border_color="#A6761D"),
@@ -587,6 +677,8 @@ def drawClustersHealthResult(path):
                                        )
                             .add_yaxis("rFCovered", grid_r_covered_in_fire_list, is_smooth=True,
                                        symbol='',
+                                       xaxis_index=2,
+                                       yaxis_index=3,
                                        linestyle_opts=opts.LineStyleOpts(color="#A0B1BA"),
                                        itemstyle_opts=opts.ItemStyleOpts(color="#A0B1BA", color0="#A0B1BA",
                                                                          border_color="#A0B1BA"),
@@ -594,25 +686,48 @@ def drawClustersHealthResult(path):
                                        # areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='red')
                                        )
                             .add_yaxis("reward", [a + b + c + d + e + f + g + h for a, b, c, d, e, f, g, h in zip(
-                                                grid_r_kill_list, grid_r_fall_list,
-                                                grid_r_inferior_list, grid_r_dominant_list,
-                                                grid_r_self_health_loss_ratio_list, grid_r_ememy_health_loss_ratio_list,
-                                                grid_r_fire_coverage_list, grid_r_covered_in_fire_list)],
+                            grid_r_kill_list, grid_r_fall_list,
+                            grid_r_inferior_list, grid_r_dominant_list,
+                            grid_r_self_health_loss_ratio_list, grid_r_ememy_health_loss_ratio_list,
+                            grid_r_fire_coverage_list, grid_r_covered_in_fire_list)],
                                        is_smooth=True,
                                        symbol='',
+                                       xaxis_index=2,
+                                       yaxis_index=3,
                                        linestyle_opts=opts.LineStyleOpts(color="#9CCEA7"),
                                        itemstyle_opts=opts.ItemStyleOpts(color="#9CCEA7", color0="#9CCEA7",
                                                                          border_color="#9CCEA7"),
                                        label_opts=opts.LabelOpts(is_show=False, color="#9CCEA7"),
                                        areastyle_opts=opts.AreaStyleOpts(opacity=0.9, color='#9CCEA7')
                                        )
+                            .extend_axis(
+                            yaxis=opts.AxisOpts(
+                                # axisline_opts=opts.AxisLineOpts(
+                                #     linestyle_opts=opts.LineStyleOpts(color="#d14a61")
+                                # ),
+                                axislabel_opts=opts.LabelOpts(formatter="{value}"), interval=5,
+                                position="left"
+                            )
+                        )
                             .set_global_opts(
                             xaxis_opts=opts.AxisOpts(
+                                grid_index=2,
                                 axistick_opts=opts.AxisTickOpts(is_align_with_label=True),
                                 is_scale=False,
                                 boundary_gap=False,
                             ),
+                            yaxis_opts=opts.AxisOpts(
+                                type_="value",
+                                splitline_opts=opts.SplitLineOpts(
+                                    is_show=True, linestyle_opts=opts.LineStyleOpts(opacity=1)
+                                ),
+                            ),
+                            visualmap_opts=opts.VisualMapOpts(
+                                # is_show=False,
+                                # type_="color", max_=len(step_value.keys()) - 2, min_=-1, dimension=4
+                            ),
                             legend_opts=opts.LegendOpts(pos_top="50%", pos_right="15%", pos_left="45%"),
+                            # tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross"),
                             # visualmap_opts=opts.VisualMapOpts(
                             #     type_="color", max_=1, min_=1
                             # ),
@@ -632,17 +747,22 @@ def drawClustersHealthResult(path):
                     # line2.set_global_opts(title_opts=opts.TitleOpts(title='Line Chart'),
                     #                       xaxis_opts=opts.AxisOpts(name='Step'),
                     #                       yaxis_opts=opts.AxisOpts(name='Value'))
-                    grid.add(scatter, grid_opts=opts.GridOpts(pos_left="5%", pos_right="60%", pos_top="15%"))
-                    grid.add(line,
+
+                    grid.add(scatter,
                              grid_opts=opts.GridOpts(
-                                 pos_left="45%", pos_right="5%", pos_top="10%", pos_bottom="55%"
-                             )
-                             )
+                                 pos_left="5%", pos_right="60%", pos_top="15%",
+                                 tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross", formatter='{b}: {c}',)
+                             ), is_control_axis_index=True)
+                    grid.add(line0,
+                             grid_opts=opts.GridOpts(
+                                 pos_left="45%", pos_right="5%", pos_top="10%", pos_bottom="55%",
+                                 tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross", formatter='{b}: {c}',)
+                             ), is_control_axis_index=True)
                     grid.add(line2,
                              grid_opts=opts.GridOpts(
-                                 pos_left="45%", pos_right="5%", pos_top="55%", pos_bottom="10%"
-                             )
-                             )
+                                 pos_left="45%", pos_right="5%", pos_top="55%", pos_bottom="10%",
+                                 tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross", formatter='{b}: {c}',)
+                             ), is_control_axis_index=True)
                     tl.add(grid, "step{}".format(step_key))
                 tl.add_schema(
                     # is_auto_play=True,  # 自动播放
