@@ -2,22 +2,22 @@ import draw_clusters_result
 import draw_game_data_plot
 import stackplottest
 
-maxStep = 100
+maxStep = 1500
 
 
 def draw_manage(path):
     # draw_game_data_plot.drawLineChart(path, maxStep)
     # print('全局奖励折线图输出完成')
-    # draw_game_data_plot.drawBoxChart(path)
-    # print('全局奖励盒箱图输出完成')
+    draw_game_data_plot.drawBoxChart(path)
+    print('全局奖励盒箱图输出完成')
     # draw_game_data_plot.drawHistoryLineChart(path)
     # print('全局奖励历史折线图输出完成')
     # draw_game_data_plot.drawActionLogLineChart(path)
     # print('动作选择趋势折线图输出完成')
     # stackplottest.fun5(path)
     # print('动作选择趋势堆叠图输出完成')
-    draw_clusters_result.drawClustersHealthResult(path, maxStep)
-    print('局部奖励可视化输出完成')
+    # draw_clusters_result.drawClustersHealthResult(path, maxStep)
+    # print('局部奖励可视化输出完成')
 
 
 def multi_draw_manage(path_list, title_list, separate, separate_title_list):
@@ -168,6 +168,17 @@ if __name__ == '__main__':
     path_8faraction7_to_8faraction7_similar_2 = './../datas/data_for_render/experiments_datas/offline_data_to_model/8faraction7_to_8faraction7_similar_2/'
     path_8faraction7_to_8faraction7_similar2_1 = './../datas/data_for_render/experiments_datas/offline_data_to_model/8faraction7_to_8faraction7_similar2_1/'
 
+
+    # defense
+    path_action1_DEF = './../datas/data_for_render/experiments_datas/defense/action1_DEF/'
+    path_action5_noDEF_1 = './../datas/data_for_render/experiments_datas/defense/action5_noDEF_1/'
+    path_action5_noDEF_2 = './../datas/data_for_render/experiments_datas/defense/action5_noDEF_2/'
+    path_action6_1 = './../datas/data_for_render/experiments_datas/defense/action6_1/'
+    path_action6_2 = './../datas/data_for_render/experiments_datas/defense/action6_2/'
+    path_action8_8far_1 = './../datas/data_for_render/experiments_datas/defense/action8_8far_1/'
+    path_action8_8far_2 = './../datas/data_for_render/experiments_datas/defense/action8_8far_2/'
+
+
     # draw_manage(path_8far_1500_action7_s10_1)
     # path_list = [path_action2, path_action2_13, path_action2_24, path_action3, path_action4, path_action5, path_8far_action7, path_action1]
     # title_list = ['2action-nN_____', '2action-n_w____', '2action-_N_W___', '3action-nNw____',
@@ -230,32 +241,65 @@ if __name__ == '__main__':
     #                        ]
 
     # 8far_action2
-    path_list = [path_8far_action2_24_1, path_8far_action2_24_2,
-                 path_8far_action7_s10_2, path_8far_action7_s10_4, path_8far_action7_3,
-                 path_8faraction7_to_8faraction7_1, path_8faraction7_to_8faraction7_2,
-                 path_8faraction7_to_8faraction7_similar_1, path_8faraction7_to_8faraction7_similar_2,
-                 path_8faraction7_to_8faraction7_similar2_1
+    # path_list = [path_8far_action2_24_1, path_8far_action2_24_2,
+    #              path_8far_action7_s10_2, path_8far_action7_s10_4, path_8far_action7_3,
+    #              path_8faraction7_to_8faraction7_1, path_8faraction7_to_8faraction7_2,
+    #              path_8faraction7_to_8faraction7_similar_1, path_8faraction7_to_8faraction7_similar_2,
+    #              path_8faraction7_to_8faraction7_similar2_1
+    #              ]
+    # title_list = [
+    #     '2action-_N_W___-1', '2action-_N_W___-2',
+    #     '7action-nNwWtlg-1', '7action-nNwWtlg-2', '7action-nNwWtlg-3',
+    #     '7action-model-1', '7action-model-2',
+    #     '7action-model_similar-1', '7action-model_similar-2',
+    #     '7action-model_similar2-1',
+    # ]
+    # separate = [2,
+    #             3,
+    #             2,
+    #             2,
+    #             1
+    #             ]
+    # separate_title_list = [
+    #     '2action_24',
+    #     '7action',
+    #     '7action-model',
+    #     '7action-model_similar',
+    #     '7action-model_similar2'
+    # ]
+
+
+    # -defense
+    path_list = [path_action1_DEF,
+                 path_8far_1500_action1_s10_1, path_8far_1500_action1_s10_2,
+                 path_8far_1500_action2_24_s10_1, path_8far_1500_action2_24_s10_2,
+                 path_8far_1500_action7_s10_1, path_8far_1500_action7_s10_2,
+                 path_8far_action7_allreward_1, path_8far_action7_allreward_2,
+                 path_action8_8far_1, path_action8_8far_2
                  ]
     title_list = [
-        '2action-_N_W___-1', '2action-_N_W___-2',
-        '7action-nNwWtlg-1', '7action-nNwWtlg-2', '7action-nNwWtlg-3',
-        '7action-model-1', '7action-model-2',
-        '7action-model_similar-1', '7action-model_similar-2',
-        '7action-model_similar2-1',
+        '1action-def',
+        '1action-atk-1', '1action-atk-2',
+        '2action-atk-1', '2action-atk-2',
+        '7action-atk-1', '7action-atk-2',
+        '7action-atk/AR-1', '7action-atk/AR-2',
+        '9action-1', '9action-2',
     ]
-    separate = [2,
-                3,
+    separate = [1,
                 2,
                 2,
-                1
+                2,
+                2,
+                2
                 ]
     separate_title_list = [
-        '2action_24',
-        '7action',
-        '7action-model',
-        '7action-model_similar',
-        '7action-model_similar2'
+        '1action-def',
+        '1action-atk',
+        '2action-atk',
+        '7action-atk',
+        '7action-atk/AR',
+        '9action',
     ]
 
-    draw_manage(path_8faraction7_to_8faraction7_2)
+    draw_manage(path_action8_8far_2)
     # multi_draw_manage(path_list, title_list, separate, separate_title_list)

@@ -50,8 +50,8 @@ _ENEMY_UNIT_TYPE = 48
 _ENEMY_UNIT_TYPE_ARG = units.Terran.Marine
 _BOUNDARY_WIDTH = 2
 
-_MY_UNITS_NUMBER = 4
-_ENEMY_UNITS_NUMBER = 4
+_MY_UNITS_NUMBER = 8
+_ENEMY_UNITS_NUMBER = 8
 _STEP_MUL = 10
 _STEP = 250 / _STEP_MUL * _MY_UNITS_NUMBER / 4
 _MAX_INFLUENCE = 25 * _ENEMY_UNITS_NUMBER
@@ -679,7 +679,9 @@ class Agent(base_agent.BaseAgent):
         "action_ATK_clu_nearest_weakest",
         "action_ATK_threatening",
         "action_MIX_lure",
-        "action_MIX_gather"
+        "action_MIX_gather",
+        "action_DEF_clu_nearest",
+        # "action_DEF_gather"
         # "do_nothing",
         # "action_"
         # "action_TFC_000",
@@ -1394,6 +1396,52 @@ class SmartAgent(Agent):
             return self.action_lst
         return actions.RAW_FUNCTIONS.no_op()
 
+    def action_DEF_clu_nearest(self, obs):
+        self.action_lst = []
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units],
+                              key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        enemy_units_lst = sorted(
+            [(item['tag'], item['x'], item['y'], item['health'], item['health_ratio']) for item in enemy_units],
+            key=lambda x: x[0])
+        mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
+        ep = self.get_center_position(obs, 'Enemy', _ENEMY_UNIT_TYPE_ARG)
+
+        if len(my_units) > 0 and len(enemy_units) > 0:
+            for clu in self.cluster_result[2]:
+                clu_mp = clu[1]
+                clu_enemy_tag_list = [self.get_nearest_enemy((item[1], item[2]), enemy_units) for item in clu[4]]
+                clu_ep_lst = [(item[1], item[2]) for item in enemy_units_lst if item[0] in clu_enemy_tag_list]
+                clu_ep = tuple(sum(x) / len(clu_ep_lst) for x in zip(*clu_ep_lst))
+                vec = tuple(3 * x - 3 * y for x, y in zip(clu_mp, clu_ep))
+                clu_tp = tuple(map(lambda x, y: min(max((x + y), 0), 128), clu_mp, vec))
+                print(clu_mp, clu_ep, clu_tp)
+                if len(clu) > 0:
+                    for unit in clu[4]:
+                        # print(local_enemy_list[0][0])
+                        self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
+                            "now", unit[0], clu_tp))
+            return self.action_lst
+        return actions.RAW_FUNCTIONS.no_op()
+
+    def action_DEF_gather(self, obs):
+        self.action_lst = []
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units],
+                              key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
+        ep = self.get_center_position(obs, 'Enemy', _ENEMY_UNIT_TYPE_ARG)
+
+        if len(my_units) > 0 and len(enemy_units) > 0:
+
+            print(self.get_window_im(obs))
+            return actions.RAW_FUNCTIONS.no_op()
+            # for clu in self.cluster_result[2]:
+
+        return actions.RAW_FUNCTIONS.no_op()
+
     # 记录上次的obs状态以供即时奖励的计算
     def get_obs(self, obs):
         my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
@@ -1861,13 +1909,13 @@ def main(unused_argv):
                 # map_name="MarineMicro_MvsM_4_dist",
                 # map_name="MarineMicro_MvsM_8_dist",
                 # map_name="MarineMicro_MvsM_4_far",
-                # map_name="MarineMicro_MvsM_8_far",
+                map_name="MarineMicro_MvsM_8_far",
                 # map_name="MarineMicro_MvsM_8_far_2",
                 # map_name="MarineMicro_ZvsM_4",
                 # map_name="MarineMicro_MvsM_8_dilemma",
                 # map_name="MarineMicro_MvsM_8_dilemma_2",
                 # map_name="MarineMicro_MvsM_Problem1",
-                map_name="MarineMicro_MvsM_4_cross2",
+                # map_name="MarineMicro_MvsM_4_cross2",
                 # map_name="MarineMicro_MvsM_4_cross2_2",
                 # 测试用图
                 # map_name="4_clu_uni_0",

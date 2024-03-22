@@ -437,7 +437,7 @@ def drawWinRateLineChart(path_list, title_list, separate, separate_title_list):
     p1 = []
     # fig.set_size_inches(12, 6)
     # all_colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange', 'red']
-    colors = ['red', 'blue', 'green', 'orange', 'gray', 'brown']
+    colors = ['gray', 'brown', 'red', 'blue', 'green', 'orange']
     linestyles = ['-', '-', '-', '-', '-', '-', '-', '-', '-']
     for i, (y, y_std, color, linestyle) in enumerate(zip(avg_win_rate, std_win_rate, colors, linestyles)):
         p0.append(plt.plot(x, y, label=title_list[i], color=color, linestyle=linestyle, linewidth=1))
@@ -522,7 +522,7 @@ def drawFitnessLineChart(path_list, title_list, separate, separate_title_list):
     p1 = []
     # fig.set_size_inches(12, 6)
     # all_colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange', 'red']
-    colors = ['red', 'blue', 'green', 'orange', 'gray', 'brown']
+    colors = ['gray', 'brown', 'red', 'blue', 'green', 'orange']
     linestyles = ['-', '-', '-', '-', '-', '-', '-', '-', '-']
     for i, (y, y_std, color, linestyle) in enumerate(zip(avg_win_rate, std_win_rate, colors, linestyles)):
         p0.append(plt.plot(x, y, label=title_list[i], color=color, linestyle=linestyle, linewidth=1))

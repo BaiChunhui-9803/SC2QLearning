@@ -77,6 +77,8 @@ _EPISODE_QTABLE_PATH = "datas/data_for_transit/episode_q_table.csv"
 _GAME_SUB_EPISODE_PATH = "datas/data_for_transit/sub_episode"
 _GAME_SHORT_TERM_RESULT_PATH = "datas/data_for_transit/short_term_result"
 _GAME_ACTION_PATH = "datas/data_for_transit/action.csv"
+_GAME_STATE_NODE_PATH = "datas/data_for_transit/graph/state_node.csv"
+_GAME_NODE_LOG_PATH = "datas/data_for_transit/graph/node_log.csv"
 
 # _OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/shorttermR_1500/8far_action7_s10_1"
 _OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/shorttermR/8far_action7_s10_2"
