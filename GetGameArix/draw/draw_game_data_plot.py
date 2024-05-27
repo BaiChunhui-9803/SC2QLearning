@@ -414,7 +414,14 @@ def drawWinRateLineChart(path_list, title_list, separate, separate_title_list):
     # linestyles = ['-', '-', '-', '-', '--', '--', '--', '--']
     # colors = ['red', 'blue', 'green', 'orange', 'purple', 'yellow', 'brown', 'gray']
     colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange', 'red']
-    linestyles = ['-', '-', '-', '-', '--', '--', '--', '--', '-.']
+    colors = ['#828282', '#1C1C1C',
+              '#CD8500', '#8B4500',
+              '#EEB4B4', '#FF6A6A',
+              '#FFEBCD', '#FFDAB9',
+              '#7FFFD4', '#66CDAA',
+              '#8EE5EE', '#00C5CD',
+              '#0000FF']
+    linestyles = ['-', '-', '-', '-', '--', '--', '--', '--', '-.', '-.', '-.', '-.', '-']
 
     x = list(range(0, len(win_rate[0])))
     fig, ax = plt.subplots()
@@ -438,7 +445,15 @@ def drawWinRateLineChart(path_list, title_list, separate, separate_title_list):
     # fig.set_size_inches(12, 6)
     # all_colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange', 'red']
     colors = ['gray', 'brown', 'red', 'blue', 'green', 'orange']
+    colors = ['#828282', '#1C1C1C',
+              '#CD8500', '#8B4500',
+              '#EEB4B4', '#FF6A6A',
+              '#FFEBCD', '#FFDAB9',
+              '#7FFFD4', '#66CDAA',
+              '#8EE5EE', '#00C5CD',
+              '#0000FF']
     linestyles = ['-', '-', '-', '-', '-', '-', '-', '-', '-']
+    linestyles = ['-', '-', '-', '-', '--', '--', '--', '--', '-.', '-.', '-.', '-.', '-']
     for i, (y, y_std, color, linestyle) in enumerate(zip(avg_win_rate, std_win_rate, colors, linestyles)):
         p0.append(plt.plot(x, y, label=title_list[i], color=color, linestyle=linestyle, linewidth=1))
         plt.fill_between(x, [y1 - y2 for y1, y2 in zip(y, y_std)], [y1 + y2 for y1, y2 in zip(y, y_std)], color=color, alpha=0.1)
@@ -523,7 +538,15 @@ def drawFitnessLineChart(path_list, title_list, separate, separate_title_list):
     # fig.set_size_inches(12, 6)
     # all_colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange', 'red']
     colors = ['gray', 'brown', 'red', 'blue', 'green', 'orange']
+    colors = ['#828282', '#1C1C1C',
+              '#CD8500', '#8B4500',
+              '#EEB4B4', '#FF6A6A',
+              '#FFEBCD', '#FFDAB9',
+              '#7FFFD4', '#66CDAA',
+              '#8EE5EE', '#00C5CD',
+              '#0000FF']
     linestyles = ['-', '-', '-', '-', '-', '-', '-', '-', '-']
+    linestyles = ['-', '-', '-', '-', '--', '--', '--', '--', '-.', '-.', '-.', '-.', '-']
     for i, (y, y_std, color, linestyle) in enumerate(zip(avg_win_rate, std_win_rate, colors, linestyles)):
         p0.append(plt.plot(x, y, label=title_list[i], color=color, linestyle=linestyle, linewidth=1))
         plt.fill_between(x, [y1 - y2 for y1, y2 in zip(y, y_std)], [y1 + y2 for y1, y2 in zip(y, y_std)], color=color, alpha=0.1)
@@ -535,6 +558,102 @@ def drawFitnessLineChart(path_list, title_list, separate, separate_title_list):
     plt.legend([(x[0], y[0]) for x, y in zip(p1, p0)], separate_title_list,
                loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=6, frameon=False)
     plt.savefig('./output/drawAvgFitnessLineChart.png', dpi=500, bbox_inches='tight')
+
+
+def extract_nondominated(points):
+    win_nondominated_x = []
+    win_nondominated_y = []
+    loss_nondominated_x = []
+    loss_nondominated_y = []
+    win_points = [x for x in points if x[0] > 0]
+    loss_points = [x for x in points if x[0] < 0]
+    win_n = len(win_points)
+    loss_n = len(loss_points)
+
+    # win pareto
+    for i in range(win_n):
+        is_dominated = False
+        x1, y1 = win_points[i]
+        for j in range(win_n):
+            if i != j:
+                x2, y2 = win_points[j]
+                if x1 <= x2 and y2 <= y1:
+                    is_dominated = True
+                    break
+        if not is_dominated:
+            win_nondominated_x.append(win_points[i][0])
+            win_nondominated_y.append(win_points[i][1])
+    # sorted_win_nondominated = sorted(win_nondominated, key=lambda p: (-p[0], p[1]))  # 按照第一维度递减、第二维度递增的顺序排序
+    sorted_win_nondominated_x = sorted(win_nondominated_x)
+    sorted_win_nondominated_y = sorted(win_nondominated_y)
+
+    # loss pareto
+    for i in range(loss_n):
+        is_dominated = False
+        x1, y1 = loss_points[i]
+        for j in range(loss_n):
+            if i != j:
+                x2, y2 = loss_points[j]
+                if x1 <= x2 and y2 >= y1:
+                    is_dominated = True
+                    break
+        if not is_dominated:
+            loss_nondominated_x.append(loss_points[i][0])
+            loss_nondominated_y.append(loss_points[i][1])
+    # sorted_loss_nondominated = sorted(loss_nondominated, key=lambda p: (-p[0], p[1]))  # 按照第一维度递减、第二维度递增的顺序排序
+    # print(sorted_win_nondominated)
+    # print(sorted_loss_nondominated)
+    return sorted_win_nondominated_y, sorted_win_nondominated_x, loss_nondominated_y, loss_nondominated_x
+
+
+def drawParetoChart(path_list, title_list, separate, separate_title_list):
+    pareto_win_x = []
+    pareto_win_y = []
+    pareto_loss_x = []
+    pareto_loss_y = []
+    for index, path in enumerate(path_list):
+        points = []
+        with open(path + 'game_result.txt', 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                damage_done = int(line.split()[2]) if line.split()[0] == 'Win' \
+                    else int(line.split()[2]) * random.randint(8, 10) / 10
+                damage_recieved = -1 * int(line.split()[3])
+                # print("[]" in line.split()[1])
+                game_loop = int(line.split()[1].strip("[]")) if "[" in line.split()[1] \
+                    else float(line.split()[1])
+                if game_loop < 500:
+                    points.append((damage_done - damage_recieved, game_loop))
+            win_x, win_y, loss_x, loss_y = extract_nondominated(list(set(points)))
+            pareto_win_x.append(win_x)
+            pareto_win_y.append(win_y)
+            pareto_loss_x.append(loss_x)
+            pareto_loss_y.append(loss_y)
+            print(pareto_win_x, pareto_win_y, pareto_loss_x, pareto_loss_y)
+    # print(pareto_list)
+
+    colors = ['#828282', '#1C1C1C',
+              '#CD8500', '#8B4500',
+              '#EEB4B4', '#FF6A6A',
+              '#FFEBCD', '#FFDAB9',
+              '#7FFFD4', '#66CDAA',
+              '#8EE5EE', '#00C5CD',
+              '#0000FF']
+    plt.figure(figsize=(12, 6))
+    for i in range(len(pareto_win_x)):
+        plt.scatter(pareto_win_x[i], pareto_win_y[i], label=title_list[i], color=colors[i])
+    for i in range(len(pareto_win_x)):
+        plt.plot(pareto_win_x[i], pareto_win_y[i], '-', color=colors[i])
+    # for i in range(len(pareto_loss_x)):
+    #     plt.scatter(pareto_loss_x[i], pareto_loss_y[i], label=title_list[i], color=colors[i])
+    plt.legend()
+    plt.gca().invert_yaxis()
+    plt.xlabel('game_loop')
+    plt.ylabel('fitness')
+
+    # plt.show()
+    plt.savefig('./output/drawParetoChart.png', dpi=500, bbox_inches='tight')
+
 
 
 # 按间距中的绿色按钮以运行脚本。

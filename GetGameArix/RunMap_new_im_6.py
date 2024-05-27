@@ -51,7 +51,7 @@ _ENEMY_UNIT_TYPE_ARG = units.Terran.Marine
 _BOUNDARY_WIDTH = 2
 
 _MY_UNITS_NUMBER = 8
-_ENEMY_UNITS_NUMBER = 8
+_ENEMY_UNITS_NUMBER = 9
 _STEP_MUL = 10
 _STEP = 250 / _STEP_MUL * _MY_UNITS_NUMBER / 4
 _MAX_INFLUENCE = 25 * _ENEMY_UNITS_NUMBER
@@ -62,6 +62,11 @@ _EPISODE_COUNT = 1
 # 单位射程半径
 _UNIT_RADIUS = 5.
 # state_vec = []
+
+# 全局结点字典
+global_node_dict = {}
+# 单局结点列表
+one_episode_node_list = []
 
 # 路径信息
 _UNITS_ATTRIBUTE_PATH = "datas/data_for_overall/units_name.csv"
@@ -77,15 +82,44 @@ _EPISODE_QTABLE_PATH = "datas/data_for_transit/episode_q_table.csv"
 _GAME_SUB_EPISODE_PATH = "datas/data_for_transit/sub_episode"
 _GAME_SHORT_TERM_RESULT_PATH = "datas/data_for_transit/short_term_result"
 _GAME_ACTION_PATH = "datas/data_for_transit/action.csv"
-_GAME_STATE_NODE_PATH = "datas/data_for_transit/graph/state_node.csv"
-_GAME_NODE_LOG_PATH = "datas/data_for_transit/graph/node_log.csv"
 
 # _OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/shorttermR_1500/8far_action7_s10_1"
-_OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/shorttermR/8far_action7_s10_2"
+# _OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/shorttermR/8far_action7_s10_2"
+# _OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/tests/MM4dist_1_1"
+# _OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/tests/MM4dist_1_mirror_4"
+_OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/tests/MM8vs9_2"
 
+_GAME_STATE_NODE_PATH = "datas/data_for_transit/graph/state_node.txt"
+_GAME_NODE_LOG_PATH = "datas/data_for_transit/graph/node_log.txt"
 
 _CNT_SUB_INDEX = 0
 _CNT_STATE = 0
+
+
+# 2024-03-23
+def save_node(state, reward):
+    if state in global_node_dict:
+        one_episode_node_list.append(global_node_dict[state][0])
+        global_node_dict[state][1] = (global_node_dict[state][1] + reward) / 2
+    else:
+        nid = len(global_node_dict)
+        global_node_dict[state] = [str(nid), reward]
+        one_episode_node_list.append(str(nid))
+
+
+def save_node_log(node_dict, node_list, dict_path, log_path):
+    # print(node_dict, node_list)
+    with open(dict_path, 'w', newline='') as file:
+        for key, value in node_dict.items():
+            line = f"{key}\t{value[0]}\t{value[1]}\n"
+            file.write(line)
+    with open(log_path, 'a', newline='') as file:
+        for item in node_list:
+            file.write(item + ' ')
+        file.write('\n')
+    global one_episode_node_list
+    one_episode_node_list = []
+
 
 def save_dataframes_to_csv(dataframes_dict, folder):
     # print(dataframes_dict.items())
@@ -692,7 +726,9 @@ class Agent(base_agent.BaseAgent):
         "action_ATK_clu_nearest_weakest",
         "action_ATK_threatening",
         "action_MIX_lure",
-        "action_MIX_gather"
+        "action_MIX_gather",
+        "action_DEF_clu_nearest",
+        # "action_MIX_lure_2",
         # "do_nothing",
         # "action_"
         # "action_TFC_000",
@@ -1409,6 +1445,67 @@ class SmartAgent(Agent):
             return self.action_lst
         return actions.RAW_FUNCTIONS.no_op()
 
+    def action_DEF_clu_nearest(self, obs):
+        self.action_lst = []
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units],
+                              key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        enemy_units_lst = sorted(
+            [(item['tag'], item['x'], item['y'], item['health'], item['health_ratio']) for item in enemy_units],
+            key=lambda x: x[0])
+        mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG)
+        ep = self.get_center_position(obs, 'Enemy', _ENEMY_UNIT_TYPE_ARG)
+
+        if len(my_units) > 0 and len(enemy_units) > 0:
+            for clu in self.cluster_result[2]:
+                clu_mp = clu[1]
+                clu_enemy_tag_list = [self.get_nearest_enemy((item[1], item[2]), enemy_units) for item in clu[4]]
+                clu_ep_lst = [(item[1], item[2]) for item in enemy_units_lst if item[0] in clu_enemy_tag_list]
+                clu_ep = tuple(sum(x) / len(clu_ep_lst) for x in zip(*clu_ep_lst))
+                vec = tuple(3 * x - 3 * y for x, y in zip(clu_mp, clu_ep))
+                clu_tp = tuple(map(lambda x, y: min(max((x + y), 0), 128), clu_mp, vec))
+                print(clu_mp, clu_ep, clu_tp)
+                if len(clu) > 0:
+                    for unit in clu[4]:
+                        # print(local_enemy_list[0][0])
+                        self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
+                            "now", unit[0], clu_tp))
+            return self.action_lst
+        return actions.RAW_FUNCTIONS.no_op()
+
+    def action_MIX_lure_2(self, obs):
+        self.action_lst = []
+        my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
+        my_units_lst = sorted([(item['tag'], item['x'], item['y'], item['weapon_cooldown']) for item in my_units],
+                              key=lambda x: x[0])
+        enemy_units = self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)
+        mp = self.get_center_position(obs, 'Self', _MY_UNIT_TYPE_ARG) if len(my_units) > 0 and len(enemy_units) > 0 else (0, 0)
+        ep = self.get_center_position(obs, 'Enemy', _ENEMY_UNIT_TYPE_ARG) if len(my_units) > 0 and len(enemy_units) > 0 else (0, 0)
+        if len(my_units) > 0 and len(enemy_units) > 0:
+            if 'action_ATK_nearest_weakest' in self.action_map:
+                self.action_map['action_ATK_nearest_weakest'] += 1
+            else:
+                self.action_map['action_ATK_nearest_weakest'] = 1
+            lure_uid = self.choose_nearest_weakest_enemy(ep, my_units) if self.choose_nearest_weakest_enemy(ep, my_units) else 0
+            # print(lure_uid)
+            back_pt = ((6/5*mp[0]-1/5*ep[0]), (6/5*mp[1]-1/5*ep[1]))
+            if lure_uid > 0:
+                # self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
+                #     "now", lure_uid, ep))
+                self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
+                    "now", lure_uid, self.choose_nearest_weakest_enemy(mp, enemy_units)))
+            else:
+                self.action_lst.append(actions.RAW_FUNCTIONS.Smart_pt(
+                    "now", lure_uid, (0, 0)))
+            if [item[0] for item in my_units_lst if item[0] != lure_uid]:
+                self.action_lst.append(actions.RAW_FUNCTIONS.Smart_unit(
+                    "queued", [item[0] for item in my_units_lst if item[0] != lure_uid], self.choose_nearest_weakest_enemy(mp, enemy_units)))
+                self.action_lst.append(actions.RAW_FUNCTIONS.Move_pt(
+                    "now", [item[0] for item in my_units_lst if item[0] != lure_uid], back_pt))
+            return self.action_lst
+        return actions.RAW_FUNCTIONS.no_op()
+
     # 记录上次的obs状态以供即时奖励的计算
     def get_obs(self, obs):
         my_units = self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)
@@ -1757,6 +1854,8 @@ class SmartAgent(Agent):
         #                                                                                                     1 - 0.5 / math.sqrt(
         #                                                                                                         _EPISODE_COUNT - 1))
         with open(_GAME_ACTION_LOG_PATH, "a") as file:
+            # print(1, str(self.clusters.index(cluster_item)))
+            # print(combat_action_item)
             file.write(str(self.clusters.index(cluster_item)) + str(self.actions.index(combat_action_item) + 3))
 
         # action = self.qtable.choose_action(state, 1 - 0.5 / math.sqrt(_EPISODE_COUNT - 1))
@@ -1828,7 +1927,9 @@ class SmartAgent(Agent):
         #         # print(self.sub_clusters_qtable_list[self.sub_clusters_qtable_tag].q_table)
         #
 
-
+        save_node(str(self.get_state(obs)),
+                  sum([item['health'] for item in self.get_my_units_by_type(obs, _MY_UNIT_TYPE_ARG)])
+                  - sum([item['health'] for item in self.get_enemy_units_by_type(obs, _ENEMY_UNIT_TYPE_ARG)]))
 
         # print(obs.observation['score_cumulative'])
         # print(self.qtable.q_table)
@@ -1880,6 +1981,7 @@ class SmartAgent(Agent):
             if _EPISODE_COUNT == 2 or _EPISODE_COUNT % 10 == 0:
                 append_qtable_csv(_EPISODE_COUNT, self.clusters_qtable.q_table, self.actions)
                 save_dataframes_to_csv(self.sub_clusters_qtable_list, _GAME_SUB_QTABLE_PATH)
+            save_node_log(global_node_dict, one_episode_node_list, _GAME_STATE_NODE_PATH, _GAME_NODE_LOG_PATH)
         return getattr(self, combat_action_item)(obs)
 
 
@@ -1889,6 +1991,10 @@ def main(unused_argv):
     with open(_GAME_ACTION_LOG_PATH, "w") as file:
         file.write("")
     with open(_GAME_ACTION_PATH, "w") as file:
+        file.write("")
+    with open(_GAME_STATE_NODE_PATH, "w") as file:
+        file.write("")
+    with open(_GAME_NODE_LOG_PATH, "w") as file:
         file.write("")
     delete_folder(_GAME_SUB_QTABLE_PATH)
     delete_folder(_GAME_SUB_EPISODE_PATH)
@@ -1902,6 +2008,7 @@ def main(unused_argv):
                 # map_name="MarineMicro_MvsM_4",
                 # map_name="MarineMicro_MvsM_8",
                 # map_name="MarineMicro_MvsM_4_dist",
+                # map_name="MarineMicro_MvsM_4_dist_mirror",
                 # map_name="MarineMicro_MvsM_8_dist",
                 # map_name="MarineMicro_MvsM_4_far",
                 # map_name="MarineMicro_MvsM_8_far",
@@ -1911,7 +2018,7 @@ def main(unused_argv):
                 # map_name="MarineMicro_MvsM_8_dilemma",
                 # map_name="MarineMicro_MvsM_8_dilemma_2",
                 # map_name="MarineMicro_MvsM_Problem1",
-                map_name="MarineMicro_MvsM_6_conga_line",
+                # map_name="MarineMicro_MvsM_6_conga_line",
                 # map_name="MarineMicro_MvsM_6_conga_line_2",
                 # 测试用图
                 # map_name="4_clu_uni_0",
@@ -1926,6 +2033,8 @@ def main(unused_argv):
                 # map_name="weapon_range_test_1",
                 # map_name="local_enemy_test_1",
                 # map_name="local_enemy_test_2",
+                # 不对等
+                map_name="MarineMicro_MvsM_unfair_8vs9",
                 players=[sc2_env.Agent(sc2_env.Race.terran),
                          # sc2_env.Agent(sc2_env.Race.terran)],
                          # sc2_env.Bot(sc2_env.Race.zerg, sc2_env.Difficulty.very_easy)],

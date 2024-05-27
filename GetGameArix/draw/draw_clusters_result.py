@@ -237,7 +237,7 @@ def update_enemy_tag_list(unit_list):
 
 
 def drawClustersHealthResult(path, maxStep=500):
-    tab = Tab()
+    tab = Tab('battle replay renderer')
     for file_id in range(1, maxStep):
         if file_id == 1 or file_id % 10 == 0:
             file_name = str(file_id) + '.csv'

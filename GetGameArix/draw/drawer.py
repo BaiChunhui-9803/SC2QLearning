@@ -8,21 +8,22 @@ maxStep = 1500
 def draw_manage(path):
     # draw_game_data_plot.drawLineChart(path, maxStep)
     # print('全局奖励折线图输出完成')
-    draw_game_data_plot.drawBoxChart(path)
-    print('全局奖励盒箱图输出完成')
+    # draw_game_data_plot.drawBoxChart(path)
+    # print('全局奖励盒箱图输出完成')
     # draw_game_data_plot.drawHistoryLineChart(path)
     # print('全局奖励历史折线图输出完成')
     # draw_game_data_plot.drawActionLogLineChart(path)
     # print('动作选择趋势折线图输出完成')
     # stackplottest.fun5(path)
     # print('动作选择趋势堆叠图输出完成')
-    # draw_clusters_result.drawClustersHealthResult(path, maxStep)
-    # print('局部奖励可视化输出完成')
+    draw_clusters_result.drawClustersHealthResult(path, maxStep)
+    print('局部奖励可视化输出完成')
 
 
 def multi_draw_manage(path_list, title_list, separate, separate_title_list):
     draw_game_data_plot.drawWinRateLineChart(path_list, title_list, separate, separate_title_list)
     draw_game_data_plot.drawFitnessLineChart(path_list, title_list, separate, separate_title_list)
+    draw_game_data_plot.drawParetoChart(path_list, title_list, separate, separate_title_list)
 
 
 if __name__ == '__main__':
@@ -178,6 +179,34 @@ if __name__ == '__main__':
     path_action8_8far_1 = './../datas/data_for_render/experiments_datas/defense/action8_8far_1/'
     path_action8_8far_2 = './../datas/data_for_render/experiments_datas/defense/action8_8far_2/'
 
+    # test 20240506
+    path_test_1_1 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_1/'
+    path_test_1_2 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_2/'
+    path_test_1_mirror_1 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_mirror_1/'
+    path_test_1_mirror_2 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_mirror_2/'
+    path_test_1_mirror_3 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_mirror_3/'
+    path_test_1_mirror_4 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_mirror_4/'
+    path_test_1_test_1 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_test_1/'
+    path_test_1_test_2 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_test_2/'
+    path_test_1_mirror_test_1 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_mirror_test_1/'
+    path_test_1_mirror_test_2 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_mirror_test_2/'
+
+
+    path_8far_1 = './../datas/data_for_render/experiments_datas/tests/MM8far_1/'
+    path_8far_2 = './../datas/data_for_render/experiments_datas/tests/MM8far_2/'
+    path_8far_mirror_1 = './../datas/data_for_render/experiments_datas/tests/MM8far_mirror_1/'
+    path_8far_mirror_act12345_1 = './../datas/data_for_render/experiments_datas/tests/MM8far_mirror_act12345_1/'
+    path_8far_mirror_act12345_2 = './../datas/data_for_render/experiments_datas/tests/MM8far_mirror_act12345_2/'
+    path_8far_mirror_act123458_1 = './../datas/data_for_render/experiments_datas/tests/MM8far_mirror_act123458_1/'
+    path_8far_mirror_act123458_2 = './../datas/data_for_render/experiments_datas/tests/MM8far_mirror_act123458_2/'
+
+    path_unfair_1 = './../datas/data_for_render/experiments_datas/tests/MM8vs9_1/'
+    path_unfair_2 = './../datas/data_for_render/experiments_datas/tests/MM8vs9_2/'
+    path_unfair_3 = './../datas/data_for_render/experiments_datas/tests/MM8vs9_3/'
+    path_unfair_4 = './../datas/data_for_render/experiments_datas/tests/MM8vs9_4/'
+    path_unfair_test_1 = './../datas/data_for_render/experiments_datas/tests/MM8vs9_test_1/'
+    path_unfair_test_2 = './../datas/data_for_render/experiments_datas/tests/MM8vs9_test_2/'
+    # path_unfair_test_3 = './../datas/data_for_render/experiments_datas/tests/MM8vs9_test_3/'
 
     # draw_manage(path_8far_1500_action7_s10_1)
     # path_list = [path_action2, path_action2_13, path_action2_24, path_action3, path_action4, path_action5, path_8far_action7, path_action1]
@@ -242,64 +271,170 @@ if __name__ == '__main__':
 
     # 8far_action2
     # path_list = [path_8far_action2_24_1, path_8far_action2_24_2,
-    #              path_8far_action7_s10_2, path_8far_action7_s10_4, path_8far_action7_3,
+    #              path_8far_action7_s10_2, path_8far_action7_s10_4,
     #              path_8faraction7_to_8faraction7_1, path_8faraction7_to_8faraction7_2,
-    #              path_8faraction7_to_8faraction7_similar_1, path_8faraction7_to_8faraction7_similar_2,
-    #              path_8faraction7_to_8faraction7_similar2_1
+    #              # path_8faraction7_to_8faraction7_similar_1, path_8faraction7_to_8faraction7_similar_2,
+    #              # path_8faraction7_to_8faraction7_similar2_1
     #              ]
     # title_list = [
     #     '2action-_N_W___-1', '2action-_N_W___-2',
-    #     '7action-nNwWtlg-1', '7action-nNwWtlg-2', '7action-nNwWtlg-3',
-    #     '7action-model-1', '7action-model-2',
-    #     '7action-model_similar-1', '7action-model_similar-2',
-    #     '7action-model_similar2-1',
+    #     '7action-nNwWtlg-1', '7action-nNwWtlg-2',
+    #     '7action-model_transfer-1', '7action-model_transfer-2',
+    #     # '7action-model_similar-1', '7action-model_similar-2',
+    #     # '7action-model_similar2-1',
     # ]
     # separate = [2,
-    #             3,
     #             2,
     #             2,
-    #             1
+    #             # 2,
+    #             # 1
     #             ]
     # separate_title_list = [
     #     '2action_24',
     #     '7action',
-    #     '7action-model',
-    #     '7action-model_similar',
-    #     '7action-model_similar2'
+    #     '7action-model_transfer',
+    #     # '7action-model_similar',
+    #     # '7action-model_similar2'
     # ]
 
 
     # -defense
-    path_list = [path_action1_DEF,
-                 path_8far_1500_action1_s10_1, path_8far_1500_action1_s10_2,
+    # path_list = [path_action1_DEF,
+    #              path_8far_1500_action1_s10_1, path_8far_1500_action1_s10_2,
+    #              path_8far_1500_action2_24_s10_1, path_8far_1500_action2_24_s10_2,
+    #              path_8far_1500_action7_s10_1, path_8far_1500_action7_s10_2,
+    #              path_8far_action7_allreward_1, path_8far_action7_allreward_2,
+    #              path_action8_8far_1, path_action8_8far_2
+    #              ]
+    # title_list = [
+    #     '1action-def',
+    #     '1action-atk-1', '1action-atk-2',
+    #     '2action-atk-1', '2action-atk-2',
+    #     '7action-atk-1', '7action-atk-2',
+    #     '7action-atk/AR-1', '7action-atk/AR-2',
+    #     '9action-1', '9action-2',
+    # ]
+    # separate = [1,
+    #             2,
+    #             2,
+    #             2,
+    #             2,
+    #             2
+    #             ]
+    # separate_title_list = [
+    #     '1action-def',
+    #     '1action-atk',
+    #     '2action-atk',
+    #     '7action-atk',
+    #     '7action-atk/AR',
+    #     '9action',
+    # ]
+
+    # test 20240506
+    # path_list = [path_test_1_1, path_test_1_2,
+    #              path_test_1_test_1, path_test_1_test_2,
+    #              path_test_1_mirror_2, path_test_1_mirror_3, path_test_1_mirror_4,
+    #              path_test_1_mirror_test_1, path_test_1_mirror_test_2
+    # # path_list = [path_action8_8far_1, path_action8_8far_2
+    #              ]
+    # title_list = [
+    #     'test_1_1', 'test_1_2',
+    #     'test_1_test_1', 'test_1_test_2',
+    #     'test_1_mirror_1', 'test_1_mirror_2', 'test_1_mirror_3',
+    #     'mirror_model_transfer_test_1', 'mirror_model_transfer_test_2',
+    # ]
+    # separate = [2,
+    #             2,
+    #             3,
+    #             2
+    #             ]
+    # separate_title_list = [
+    #     'original',
+    #     'original_model_transfer',
+    #     'mirror',
+    #     'mirror_model_transfer',
+    # ]
+
+    # path_list = [path_8far_1,
+    #              path_8far_mirror_1
+    #              # path_unfair_test_2
+    #              # path_list = [path_action8_8far_1, path_action8_8far_2
+    #              ]
+    # title_list = [
+    #     '8far_1',
+    #     '8far_mirror_1',
+    #     # 'unfair_test_2',
+    # ]
+    # separate = [1, 1,
+    #             # 1
+    #             ]
+    # separate_title_list = [
+    #     '8far',
+    #     '8far_mirror',
+    #     # 'unfair_test',
+    # ]
+
+    # path_list = [path_unfair_2,
+    #              # path_unfair_test_1, path_unfair_test_2
+    #              # path_unfair_test_2
+    #              # path_list = [path_action8_8far_1, path_action8_8far_2
+    #              ]
+    # title_list = [
+    #     'unfair_1',
+    #     # 'unfair_test_1', 'unfair_test_2',
+    #     # 'unfair_test_2',
+    # ]
+    # separate = [1,
+    #             # 2,
+    #             # 1
+    #             ]
+    # separate_title_list = [
+    #     'unfair',
+    #     # 'unfair_model_transfer',
+    #     # 'unfair_test',
+    # ]
+
+    # 宏动作
+    path_list = [path_8far_1500_action1_s10_1, path_8far_1500_action1_s10_2,
                  path_8far_1500_action2_24_s10_1, path_8far_1500_action2_24_s10_2,
                  path_8far_1500_action7_s10_1, path_8far_1500_action7_s10_2,
-                 path_8far_action7_allreward_1, path_8far_action7_allreward_2,
-                 path_action8_8far_1, path_action8_8far_2
+                 path_8far_1, path_8far_2,
+                 path_8far_mirror_act12345_1, path_8far_mirror_act12345_2,
+                 path_8far_mirror_act123458_1, path_8far_mirror_act123458_2,
+                 path_8far_mirror_1,
+                 # path_8far_
+                 # path_8faraction7_to_8faraction7_1
+                 # path_unfair_test_1, path_unfair_test_2
+                 # path_unfair_test_2
+                 # path_list = [path_action8_8far_1, path_action8_8far_2
                  ]
     title_list = [
-        '1action-def',
-        '1action-atk-1', '1action-atk-2',
-        '2action-atk-1', '2action-atk-2',
-        '7action-atk-1', '7action-atk-2',
-        '7action-atk/AR-1', '7action-atk/AR-2',
-        '9action-1', '9action-2',
+        'action1_1', 'action1_2',
+        'action2_1', 'action2_2',
+        'action7_1', 'action7_2',
+        'action9_1', 'action9_2',
+        'actionATK_mirror_1', 'actionATK_mirror_2',
+        'actionMIX_mirror_1', 'actionMIX_mirror_2',
+        'actionALL_mirror',
+
+        # 'unfair_test_1', 'unfair_test_2',
+        # 'unfair_test_2',
     ]
-    separate = [1,
-                2,
-                2,
-                2,
-                2,
-                2
+    separate = [2, 2, 2, 2, 2, 2, 1,
+                # 2,
+                # 1
                 ]
     separate_title_list = [
-        '1action-def',
-        '1action-atk',
-        '2action-atk',
-        '7action-atk',
-        '7action-atk/AR',
-        '9action',
+        'action1',
+        'action2',
+        'action7',
+        'action9',
+        'actionATK_mirror',
+        'actionMIX_mirror',
+        'actionALL_mirror',
+        # 'unfair_model_transfer',
+        # 'unfair_test',
     ]
 
-    draw_manage(path_action8_8far_2)
-    # multi_draw_manage(path_list, title_list, separate, separate_title_list)
+    # draw_manage(path_8far_mirror_1)
+    multi_draw_manage(path_list, title_list, separate, separate_title_list)
