@@ -51,9 +51,9 @@ _ENEMY_UNIT_TYPE_ARG = units.Terran.Marine
 _BOUNDARY_WIDTH = 2
 
 _MY_UNITS_NUMBER = 8
-_ENEMY_UNITS_NUMBER = 9
+_ENEMY_UNITS_NUMBER = 8
 _STEP_MUL = 10
-_STEP = 250 / _STEP_MUL * _MY_UNITS_NUMBER / 4
+_STEP = 250 / _STEP_MUL * _MY_UNITS_NUMBER / 4 / 2
 _MAX_INFLUENCE = 25 * _ENEMY_UNITS_NUMBER
 _MIN_INFLUENCE = -16 * _ENEMY_UNITS_NUMBER
 
@@ -85,9 +85,11 @@ _GAME_ACTION_PATH = "datas/data_for_transit/action.csv"
 
 # _OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/shorttermR_1500/8far_action7_s10_1"
 # _OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/shorttermR/8far_action7_s10_2"
+_OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/tests/MM8far_2"
+# _OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/tests/MM8far_mirror_2"
 # _OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/tests/MM4dist_1_1"
 # _OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/tests/MM4dist_1_mirror_4"
-_OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/tests/MM8vs9_2"
+# _OFFLINE_DATA_DIR_PATH = "datas/data_for_render/experiments_datas/tests/MM8vs9_2"
 
 _GAME_STATE_NODE_PATH = "datas/data_for_transit/graph/state_node.txt"
 _GAME_NODE_LOG_PATH = "datas/data_for_transit/graph/node_log.txt"
@@ -728,7 +730,7 @@ class Agent(base_agent.BaseAgent):
         "action_MIX_lure",
         "action_MIX_gather",
         "action_DEF_clu_nearest",
-        # "action_MIX_lure_2",
+        "action_MIX_lure_2",
         # "do_nothing",
         # "action_"
         # "action_TFC_000",
@@ -2011,7 +2013,8 @@ def main(unused_argv):
                 # map_name="MarineMicro_MvsM_4_dist_mirror",
                 # map_name="MarineMicro_MvsM_8_dist",
                 # map_name="MarineMicro_MvsM_4_far",
-                # map_name="MarineMicro_MvsM_8_far",
+                map_name="MarineMicro_MvsM_8_far",
+                # map_name="MarineMicro_MvsM_8_far_mirror",
                 # map_name="MarineMicro_MvsM_8_far_2",
                 # map_name="MarineMicro_MvsM_8_far_3",
                 # map_name="MarineMicro_ZvsM_4",
@@ -2034,7 +2037,7 @@ def main(unused_argv):
                 # map_name="local_enemy_test_1",
                 # map_name="local_enemy_test_2",
                 # 不对等
-                map_name="MarineMicro_MvsM_unfair_8vs9",
+                # map_name="MarineMicro_MvsM_unfair_8vs9",
                 players=[sc2_env.Agent(sc2_env.Race.terran),
                          # sc2_env.Agent(sc2_env.Race.terran)],
                          # sc2_env.Bot(sc2_env.Race.zerg, sc2_env.Difficulty.very_easy)],
@@ -2057,7 +2060,7 @@ def main(unused_argv):
             # run_loop.run_loop([agent1, agent2], env, max_frames=10, max_episodes=1000)
             agent1 = SmartAgent()
             agent2 = Agent()
-            run_loop.run_loop([agent1, agent2], env, max_episodes=500)
+            run_loop.run_loop([agent1, agent2], env, max_episodes=1500)
     except KeyboardInterrupt:
         pass
 

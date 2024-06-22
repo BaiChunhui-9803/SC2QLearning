@@ -362,7 +362,7 @@ def drawQTableMap(path):
     # 输出每一列的和
     print(col_sums)
 
-def drawWinRateLineChart(path_list, title_list, separate, separate_title_list):
+def drawWinRateLineChart(path_list, title_list, separate, separate_title_list, colors, linestyles, maxStep):
     win_rate = []
     for index, path in enumerate(path_list):
         result = []
@@ -372,7 +372,7 @@ def drawWinRateLineChart(path_list, title_list, separate, separate_title_list):
             for line in lines:
                 result.append(line.split()[0])
             for i in range(len(result)):
-                start_index = max(0, i - 24)  # 计算起始节点的索引
+                start_index = max(0, i - 49)  # 计算起始节点的索引
                 win_count = result[start_index:i + 1].count("Win")  # 统计第i-20到第i个节点中"Win"的次数
                 win_rate[index].append(win_count / (i - start_index + 1))
                 # win_rate[index].append(win_count / 25)
@@ -413,15 +413,15 @@ def drawWinRateLineChart(path_list, title_list, separate, separate_title_list):
     # '-', '--', '-.', ':', 'None', ' ', '', 'solid', 'dashed', 'dashdot', 'dotted'
     # linestyles = ['-', '-', '-', '-', '--', '--', '--', '--']
     # colors = ['red', 'blue', 'green', 'orange', 'purple', 'yellow', 'brown', 'gray']
-    colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange', 'red']
-    colors = ['#828282', '#1C1C1C',
-              '#CD8500', '#8B4500',
-              '#EEB4B4', '#FF6A6A',
-              '#FFEBCD', '#FFDAB9',
-              '#7FFFD4', '#66CDAA',
-              '#8EE5EE', '#00C5CD',
-              '#0000FF']
-    linestyles = ['-', '-', '-', '-', '--', '--', '--', '--', '-.', '-.', '-.', '-.', '-']
+    # colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange', 'red']
+    # colors = ['#828282', '#1C1C1C',
+    #           '#CD8500', '#8B4500',
+    #           '#EEB4B4', '#FF6A6A',
+    #           '#FFEBCD', '#FFDAB9',
+    #           '#7FFFD4', '#66CDAA',
+    #           '#8EE5EE', '#00C5CD',
+    #           '#0000FF']
+    # linestyles = ['-', '-', '-', '-', '--', '--', '--', '--', '-.', '-.', '-.', '-.', '-']
 
     x = list(range(0, len(win_rate[0])))
     fig, ax = plt.subplots()
@@ -439,32 +439,33 @@ def drawWinRateLineChart(path_list, title_list, separate, separate_title_list):
     fig.savefig('./output/drawWinRateLineChart.png', dpi=500, bbox_inches='tight')
     # plt.show()
     plt.clf()
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(12, 7.416))
     p0 = []
     p1 = []
     # fig.set_size_inches(12, 6)
     # all_colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange', 'red']
-    colors = ['gray', 'brown', 'red', 'blue', 'green', 'orange']
-    colors = ['#828282', '#1C1C1C',
-              '#CD8500', '#8B4500',
-              '#EEB4B4', '#FF6A6A',
-              '#FFEBCD', '#FFDAB9',
-              '#7FFFD4', '#66CDAA',
-              '#8EE5EE', '#00C5CD',
-              '#0000FF']
-    linestyles = ['-', '-', '-', '-', '-', '-', '-', '-', '-']
-    linestyles = ['-', '-', '-', '-', '--', '--', '--', '--', '-.', '-.', '-.', '-.', '-']
+    # colors = ['gray', 'brown', 'red', 'blue', 'green', 'orange']
+    # colors = ['#828282', '#1C1C1C',
+    #           '#CD8500', '#8B4500',
+    #           '#EEB4B4', '#FF6A6A',
+    #           '#FFEBCD', '#FFDAB9',
+    #           '#7FFFD4', '#66CDAA',
+    #           '#8EE5EE', '#00C5CD',
+    #           '#0000FF']
+    # linestyles = ['-', '-', '-', '-', '-', '-', '-', '-', '-']
+    # linestyles = ['-', '-', '-', '-', '--', '--', '--', '--', '-.', '-.', '-.', '-.', '-']
     for i, (y, y_std, color, linestyle) in enumerate(zip(avg_win_rate, std_win_rate, colors, linestyles)):
         p0.append(plt.plot(x, y, label=title_list[i], color=color, linestyle=linestyle, linewidth=1))
-        plt.fill_between(x, [y1 - y2 for y1, y2 in zip(y, y_std)], [y1 + y2 for y1, y2 in zip(y, y_std)], color=color, alpha=0.1)
-        p1.append(plt.fill(np.NaN, np.NaN, color=color, alpha=0.1))
+        plt.fill_between(x, [y1 - y2 for y1, y2 in zip(y, y_std)], [y1 + y2 for y1, y2 in zip(y, y_std)], color=color, alpha=0.4)
+        p1.append(plt.fill(np.NaN, np.NaN, color=color, alpha=0.5))
     # plt.title('Average Win Rate of Nearly 25 Game Episodes')
     plt.hlines(0.5, xmin=0, xmax=len(win_rate[0]), color='gray', linestyle='--', linewidth=0.75)
-    plt.xlabel('Game Episode')
-    plt.ylabel('Mean Win Rate')
+    plt.xlabel('Game episode', fontsize=14)
+    plt.ylabel('Win rate', fontsize=14)
     plt.legend([(x[0], y[0]) for x, y in zip(p1, p0)], separate_title_list,
-               loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=6, frameon=False)
-    plt.savefig('./output/drawAvgWinRateLineChart.png', dpi=500, bbox_inches='tight')
+               loc='upper center', bbox_to_anchor=(0.5, 1.07), ncol=7, frameon=False, fontsize=12)
+    plt.xlim(0, maxStep)
+    plt.savefig('./output/drawAvgWinRateLineChart.pdf', dpi=1500, bbox_inches='tight')
     # plt.plot(x, avg_win_rate)
     # plt.fill_between(x, min_win_rate, max_win_rate, alpha=0.5)
     # plt.show()
@@ -474,7 +475,7 @@ def drawWinRateLineChart(path_list, title_list, separate, separate_title_list):
     # plt.show()
 
 
-def drawFitnessLineChart(path_list, title_list, separate, separate_title_list):
+def drawFitnessLineChart(path_list, title_list, separate, separate_title_list, colors, linestyles, maxStep):
     fitness_list = []
     for index, path in enumerate(path_list):
         result = []
@@ -486,7 +487,7 @@ def drawFitnessLineChart(path_list, title_list, separate, separate_title_list):
                               else int(line.split()[2]) * random.randint(8, 10) / 10 + int(line.split()[3]))
                 # print(int(line.split()[2]) + int(line.split()[3]))
             for i in range(len(result)):
-                start_index = max(0, i - 24)  # 计算起始节点的索引
+                start_index = max(0, i - 49)  # 计算起始节点的索引
                 # print(sum(result[start_index:i + 1]) / (i - start_index + 1))
                 fitness_list[index].append(sum(result[start_index:i + 1]) / (i - start_index + 1))
                 # win_rate[index].append(win_count / 25)
@@ -527,37 +528,153 @@ def drawFitnessLineChart(path_list, title_list, separate, separate_title_list):
     # '-', '--', '-.', ':', 'None', ' ', '', 'solid', 'dashed', 'dashdot', 'dotted'
     # linestyles = ['-', '-', '-', '-', '--', '--', '--', '--']
     # colors = ['red', 'blue', 'green', 'orange', 'purple', 'yellow', 'brown', 'gray']
-    colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange', 'red']
-    linestyles = ['-', '-', '-', '-', '--', '--', '--', '--', '-.']
+    # colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange', 'red']
+    # linestyles = ['-', '-', '-', '-', '--', '--', '--', '--', '-.']
 
     x = list(range(0, len(fitness_list[0])))
     plt.clf()
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(12, 7.416))
     p0 = []
     p1 = []
     # fig.set_size_inches(12, 6)
     # all_colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange', 'red']
-    colors = ['gray', 'brown', 'red', 'blue', 'green', 'orange']
-    colors = ['#828282', '#1C1C1C',
-              '#CD8500', '#8B4500',
-              '#EEB4B4', '#FF6A6A',
-              '#FFEBCD', '#FFDAB9',
-              '#7FFFD4', '#66CDAA',
-              '#8EE5EE', '#00C5CD',
-              '#0000FF']
-    linestyles = ['-', '-', '-', '-', '-', '-', '-', '-', '-']
-    linestyles = ['-', '-', '-', '-', '--', '--', '--', '--', '-.', '-.', '-.', '-.', '-']
+    # colors = ['gray', 'brown', 'red', 'blue', 'green', 'orange']
+    # colors = ['#828282', '#1C1C1C',
+    #           '#CD8500', '#8B4500',
+    #           '#EEB4B4', '#FF6A6A',
+    #           '#FFEBCD', '#FFDAB9',
+    #           '#7FFFD4', '#66CDAA',
+    #           '#8EE5EE', '#00C5CD',
+    #           '#0000FF']
+    # linestyles = ['-', '-', '-', '-', '-', '-', '-', '-', '-']
+    # linestyles = ['-', '-', '-', '-', '--', '--', '--', '--', '-.', '-.', '-.', '-.', '-']
     for i, (y, y_std, color, linestyle) in enumerate(zip(avg_win_rate, std_win_rate, colors, linestyles)):
         p0.append(plt.plot(x, y, label=title_list[i], color=color, linestyle=linestyle, linewidth=1))
-        plt.fill_between(x, [y1 - y2 for y1, y2 in zip(y, y_std)], [y1 + y2 for y1, y2 in zip(y, y_std)], color=color, alpha=0.1)
-        p1.append(plt.fill(np.NaN, np.NaN, color=color, alpha=0.1))
+        plt.fill_between(x, [y1 - y2 for y1, y2 in zip(y, y_std)], [y1 + y2 for y1, y2 in zip(y, y_std)], color=color, alpha=0.4)
+        p1.append(plt.fill(np.NaN, np.NaN, color=color, alpha=0.5))
     # plt.title('Average Win Rate of Nearly 25 Game Episodes')
     plt.hlines(0, xmin=0, xmax=len(fitness_list[0]), color='gray', linestyle='--', linewidth=0.75)  # 水平直线，颜色红色，样式虚线
-    plt.xlabel('Game Episode')
-    plt.ylabel('Mean selfHP - enemyHP')
+    plt.xlabel('Game episode', fontsize=14)
+    plt.ylabel('DamageDone - DamageRecieved', fontsize=14)
+    plt.xlim(0, maxStep)
     plt.legend([(x[0], y[0]) for x, y in zip(p1, p0)], separate_title_list,
-               loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=6, frameon=False)
-    plt.savefig('./output/drawAvgFitnessLineChart.png', dpi=500, bbox_inches='tight')
+               loc='upper center', bbox_to_anchor=(0.5, 1.07), ncol=7, frameon=False, fontsize=12)
+    plt.savefig('./output/drawAvgFitnessLineChart.pdf', dpi=1500, bbox_inches='tight')
+
+
+def drawBoth(path_list, title_list, separate, separate_title_list, colors, linestyles, maxStep):
+    # 1
+    win_rate = []
+    for index, path in enumerate(path_list):
+        result = []
+        win_rate.append([])
+        with open(path + 'game_result.txt', 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                result.append(line.split()[0])
+            for i in range(len(result)):
+                start_index = max(0, i - 49)  # 计算起始节点的索引
+                win_count = result[start_index:i + 1].count("Win")  # 统计第i-20到第i个节点中"Win"的次数
+                win_rate[index].append(win_count / (i - start_index + 1))
+                # win_rate[index].append(win_count / 25)
+    win_rate_separate = []
+    cnt = 0
+    for i in separate:
+        win_rate_separate.append([win_rate[cnt:cnt + i]])
+        cnt = cnt + i
+    avg_win_rate = []
+    std_win_rate = []
+    for col in win_rate_separate:
+        avg_win_rate.append([sum(colx) / len(colx) for colx in zip(*col[0])])
+        std_win_rate.append([np.std(colx) / np.sqrt(len(colx)) for colx in zip(*col[0])])
+    x = list(range(0, len(win_rate[0])))
+    # 2
+    avg_win_rate2 = []
+    std_win_rate2 = []
+    fitness_list = []
+    for index, path in enumerate(path_list):
+        result = []
+        fitness_list.append([])
+        with open(path + 'game_result.txt', 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                result.append(int(line.split()[2]) + int(line.split()[3]) if line.split()[0] == 'Win'
+                              else int(line.split()[2]) * random.randint(8, 10) / 10 + int(line.split()[3]))
+            for i in range(len(result)):
+                start_index = max(0, i - 49)  # 计算起始节点的索引
+                fitness_list[index].append(sum(result[start_index:i + 1]) / (i - start_index + 1))
+    win_rate_separate = []
+    cnt = 0
+    for i in separate:
+        win_rate_separate.append([fitness_list[cnt:cnt + i]])
+        cnt = cnt + i
+    # avg_win_rate = []
+    # std_win_rate = []
+    for col in win_rate_separate:
+        avg_win_rate2.append([sum(colx) / len(colx) for colx in zip(*col[0])])
+        std_win_rate2.append([np.std(colx) / np.sqrt(len(colx)) for colx in zip(*col[0])])
+
+
+    fig, ax = plt.subplots(1, 2, figsize=(20, 6))
+
+    # for i, (y, color, linestyle) in enumerate(zip(win_rate, colors, linestyles)):
+    #     ax[0].plot(x, y, label=title_list[i], color=color, linestyle=linestyle, linewidth=1)
+    # ax[0].xlim(0, len(win_rate[0]))
+    # ax.legend(loc='lower right')
+    # fig.subplots_adjust(hspace=0.5)  # 调整纵向间距
+    # # ax.tight_layout()  # 自动调整整体布局
+    # # ax.show()
+    # ax[0].set_title('Win Rate of Nearly 25 Game Episodes')
+    # ax[0].set_xlabel('Game Episode')
+    # ax[0].set_ylabel('Win Rate')
+
+    # plt.show()
+    # plt.clf()
+    # plt.figure(figsize=(12, 7.416))
+    p0 = []
+    p1 = []
+    for i, (y, y_std, color, linestyle) in enumerate(zip(avg_win_rate, std_win_rate, colors, linestyles)):
+        p0.append(ax[0].plot(x, y, label=title_list[i], color=color, linestyle=linestyle, linewidth=1))
+        ax[0].fill_between(x, [y1 - y2 for y1, y2 in zip(y, y_std)], [y1 + y2 for y1, y2 in zip(y, y_std)], color=color,
+                         alpha=0.4)
+        p1.append(ax[0].fill(np.NaN, np.NaN, color=color, alpha=0.5))
+    # plt.title('Average Win Rate of Nearly 25 Game Episodes')
+    ax[0].hlines(0.5, xmin=0, xmax=len(win_rate[0]), color='gray', linestyle='--', linewidth=0.75)
+    ax[0].set_xlabel('Game episode', fontsize=16)
+    ax[0].set_ylabel('Win rate', fontsize=16)
+    # ax[0].legend([(x[0], y[0]) for x, y in zip(p1, p0)], separate_title_list,
+    #            loc='upper center', bbox_to_anchor=(0.5, 1.07), ncol=7, frameon=False, fontsize=12)
+    # ax[0].legend([(x[0], y[0]) for x, y in zip(p1, p0)], separate_title_list, ncol=9,
+    #              loc='upper center', bbox_to_anchor=(0.8, 1.07), frameon=False, fontsize=12)
+    ax[0].set_xlim(0, maxStep)
+
+    p0 = []
+    p1 = []
+    for i, (y, y_std, color, linestyle) in enumerate(zip(avg_win_rate2, std_win_rate2, colors, linestyles)):
+        p0.append(ax[1].plot(x, y, label=title_list[i], color=color, linestyle=linestyle, linewidth=1))
+        ax[1].fill_between(x, [y1 - y2 for y1, y2 in zip(y, y_std)], [y1 + y2 for y1, y2 in zip(y, y_std)], color=color,
+                         alpha=0.4)
+        p1.append(ax[1].fill(np.NaN, np.NaN, color=color, alpha=0.5))
+    # plt.title('Average Win Rate of Nearly 25 Game Episodes')
+    ax[1].hlines(0, xmin=0, xmax=len(fitness_list[0]), color='gray', linestyle='--', linewidth=0.75)  # 水平直线，颜色红色，样式虚线
+    ax[1].set_xlabel('Game episode', fontsize=16)
+    ax[1].set_ylabel('Final score', fontsize=16)
+    ax[1].set_xlim(0, maxStep)
+
+
+    # handles, labels = ax[1].get_legend_handles_labels()
+    fig.legend([(x[0], y[0]) for x, y in zip(p1, p0)], separate_title_list, loc='upper center', ncol=9,
+               frameon=False, fontsize=16, bbox_to_anchor=(0.5, 0.97), columnspacing=0.5)
+    plt.subplots_adjust(wspace=0.15)
+    # ax[1].legend([(x[0], y[0]) for x, y in zip(p1, p0)], separate_title_list,
+    #            loc='upper center', bbox_to_anchor=(0.5, 1.07), ncol=7, frameon=False, fontsize=12)
+    # legend = plt.legend()
+    # for text in legend.get_texts():
+    #     # text.set_fontsize('10')  # 设置标签字体大小
+    #     text.set_padding(5)  # 设置标签间距
+
+
+    fig.savefig('./output/drawBoth.pdf', dpi=500, bbox_inches='tight')
 
 
 def extract_nondominated(points):
@@ -639,7 +756,7 @@ def drawParetoChart(path_list, title_list, separate, separate_title_list):
               '#7FFFD4', '#66CDAA',
               '#8EE5EE', '#00C5CD',
               '#0000FF']
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(12, 7.416))
     for i in range(len(pareto_win_x)):
         plt.scatter(pareto_win_x[i], pareto_win_y[i], label=title_list[i], color=colors[i])
     for i in range(len(pareto_win_x)):

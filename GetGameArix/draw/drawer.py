@@ -16,14 +16,15 @@ def draw_manage(path):
     # print('动作选择趋势折线图输出完成')
     # stackplottest.fun5(path)
     # print('动作选择趋势堆叠图输出完成')
-    draw_clusters_result.drawClustersHealthResult(path, maxStep)
+    # draw_clusters_result.drawClustersHealthResult(path, maxStep)
     print('局部奖励可视化输出完成')
 
 
-def multi_draw_manage(path_list, title_list, separate, separate_title_list):
-    draw_game_data_plot.drawWinRateLineChart(path_list, title_list, separate, separate_title_list)
-    draw_game_data_plot.drawFitnessLineChart(path_list, title_list, separate, separate_title_list)
-    draw_game_data_plot.drawParetoChart(path_list, title_list, separate, separate_title_list)
+def multi_draw_manage(path_list, title_list, separate, separate_title_list, colors, linestyles):
+    # draw_game_data_plot.drawWinRateLineChart(path_list, title_list, separate, separate_title_list, colors, linestyles, maxStep)
+    # draw_game_data_plot.drawFitnessLineChart(path_list, title_list, separate, separate_title_list, colors, linestyles, maxStep)
+    draw_game_data_plot.drawBoth(path_list, title_list, separate, separate_title_list, colors, linestyles, maxStep)
+    # draw_game_data_plot.drawParetoChart(path_list, title_list, separate, separate_title_list)
 
 
 if __name__ == '__main__':
@@ -395,46 +396,395 @@ if __name__ == '__main__':
     # ]
 
     # 宏动作
-    path_list = [path_8far_1500_action1_s10_1, path_8far_1500_action1_s10_2,
-                 path_8far_1500_action2_24_s10_1, path_8far_1500_action2_24_s10_2,
-                 path_8far_1500_action7_s10_1, path_8far_1500_action7_s10_2,
-                 path_8far_1, path_8far_2,
-                 path_8far_mirror_act12345_1, path_8far_mirror_act12345_2,
-                 path_8far_mirror_act123458_1, path_8far_mirror_act123458_2,
-                 path_8far_mirror_1,
-                 # path_8far_
-                 # path_8faraction7_to_8faraction7_1
-                 # path_unfair_test_1, path_unfair_test_2
-                 # path_unfair_test_2
-                 # path_list = [path_action8_8far_1, path_action8_8far_2
-                 ]
-    title_list = [
-        'action1_1', 'action1_2',
-        'action2_1', 'action2_2',
-        'action7_1', 'action7_2',
-        'action9_1', 'action9_2',
-        'actionATK_mirror_1', 'actionATK_mirror_2',
-        'actionMIX_mirror_1', 'actionMIX_mirror_2',
-        'actionALL_mirror',
+    # path_list = [path_8far_1500_action1_s10_1, path_8far_1500_action1_s10_2,
+    #              path_8far_1500_action2_24_s10_1, path_8far_1500_action2_24_s10_2,
+    #              path_8far_1500_action7_s10_1, path_8far_1500_action7_s10_2,
+    #              path_8far_1, path_8far_2,
+    #              path_8far_mirror_act12345_1, path_8far_mirror_act12345_2,
+    #              path_8far_mirror_act123458_1, path_8far_mirror_act123458_2,
+    #              path_8far_mirror_1,
+    #              # path_8far_
+    #              # path_8faraction7_to_8faraction7_1
+    #              # path_unfair_test_1, path_unfair_test_2
+    #              # path_unfair_test_2
+    #              # path_list = [path_action8_8far_1, path_action8_8far_2
+    #              ]
+    # title_list = [
+    #     'action1_1', 'action1_2',
+    #     'action2_1', 'action2_2',
+    #     'action7_1', 'action7_2',
+    #     'action9_1', 'action9_2',
+    #     'actionATK_mirror_1', 'actionATK_mirror_2',
+    #     'actionMIX_mirror_1', 'actionMIX_mirror_2',
+    #     'actionALL_mirror',
+    #
+    #     # 'unfair_test_1', 'unfair_test_2',
+    #     # 'unfair_test_2',
+    # ]
+    # separate = [2, 2, 2, 2, 2, 2, 1,
+    #             # 2,
+    #             # 1
+    #             ]
+    # separate_title_list = [
+    #     'action1',
+    #     'action2',
+    #     'action7',
+    #     'action9',
+    #     'actionATK_mirror',
+    #     'actionMIX_mirror',
+    #     'actionALL_mirror',
+    #     # 'unfair_model_transfer',
+    #     # 'unfair_test',
+    # ]
 
-        # 'unfair_test_1', 'unfair_test_2',
-        # 'unfair_test_2',
+    # 论文
+    # jili-1 -
+    wujiangli = './../datas/data_for_render/experiments_datas/parameters/LR10_RD10_nullReward/'
+    wusuiji = './../datas/data_for_render/experiments_datas/others/M4vsM4_no_greedy/'
+    jiandanstate1 = './../datas/data_for_render/experiments_datas/state_area_100/MM_Far_8/'
+    jiandanstate2 = './../datas/data_for_render/experiments_datas/state_area_100/MM_Far_8_2/'
+    # jili-2 - 单层s/单层聚类sc/多层不聚类m/多层聚类mc/多层聚类有局部奖励mcl
+    clusters1 = './../datas/data_for_render/experiments_datas/problems/MM_Far_8/'
+    clustersc1 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8/'
+    clustersc2 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_2/'
+    clustersc3= './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_3/'
+    clustersc4 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_4/'
+    clusterm1 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_e/'
+    clusterm2 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Far_8_e_2/'
+    clustermc1 = './../datas/data_for_render/experiments_datas/shorttermR_1500/to500/8far_action7_allreward_1/game_result1/'
+    clustermc2 = './../datas/data_for_render/experiments_datas/shorttermR_1500/to500/8far_action7_allreward_2/game_result2/'
+    clustermcl1 = './../datas/data_for_render/experiments_datas/shorttermR_1500/to500/8far_action7_s10_2/game_result2/'
+    clustermcl2 = './../datas/data_for_render/experiments_datas/shorttermR_1500/to500/8far_action7_s10_2/game_result1/'
+    # jili-31 - 4v4 action_ATK_nearest/action_ATK_clu_nearest/action_ATK_nearest_weakest/
+    #               action_ATK_clu_nearest_weakest/do_nothing
+    xiaorong1____1 = './../datas/data_for_render/experiments_datas/shorttermR/action1/'
+    xiaorong1____2 = './../datas/data_for_render/experiments_datas/shorttermR/action1_2/'
+    xiaorong_2___1 = './../datas/data_for_render/experiments_datas/shorttermR/action1_clu/'
+    xiaorong_2___2 = './../datas/data_for_render/experiments_datas/shorttermR/action1_clu_2/'
+    xiaorong____n1 = './../datas/data_for_render/experiments_datas/shorttermR/action1_random/'
+    xiaorong____n2 = './../datas/data_for_render/experiments_datas/shorttermR/action1_random_2/'
+    xiaorong12___1 = './../datas/data_for_render/experiments_datas/shorttermR/action2/'
+    xiaorong12___2 = './../datas/data_for_render/experiments_datas/shorttermR/action2_2/'
+    xiaorong1_3__1 = './../datas/data_for_render/experiments_datas/shorttermR/action2_13/'
+    xiaorong1_3__2 = './../datas/data_for_render/experiments_datas/shorttermR/action2_13_2/'
+    xiaorong1_3__3 = './../datas/data_for_render/experiments_datas/shorttermR/action2_13_3/'
+    xiaorong_2_4_1 = './../datas/data_for_render/experiments_datas/shorttermR/action2_24/'
+    xiaorong_2_4_2 = './../datas/data_for_render/experiments_datas/shorttermR/action2_24_2/'
+    xiaorong1234_1 = './../datas/data_for_render/experiments_datas/shorttermR/action4/'
+    xiaorong5 = './../datas/data_for_render/experiments_datas/shorttermR/action5/'
+    # jili-32 -
+    # action1_D_ = './../datas/data_for_render/experiments_datas/defense/action1_DEF'
+    action5A__1 = './../datas/data_for_render/experiments_datas/defense/action5_noDEF_1/'
+    action5A__2 = './../datas/data_for_render/experiments_datas/defense/action5_noDEF_2/'
+    action6AD_1 = './../datas/data_for_render/experiments_datas/defense/action6_1/'
+    action6AD_2 = './../datas/data_for_render/experiments_datas/defense/action6_2/'
+    far8action2A__1 = './../datas/data_for_render/experiments_datas/shorttermR_1500/8far_action2_24_s10_1/'
+    far8action2A__2 = './../datas/data_for_render/experiments_datas/shorttermR_1500/8far_action2_24_s10_2/'
+    far8action6AD_1 = './../datas/data_for_render/experiments_datas/shorttermR_1500/8far_action7_s10_1/'
+    far8action6AD_2 = './../datas/data_for_render/experiments_datas/shorttermR_1500/8far_action7_s10_2/'
+    far8action8ADM1 = './../datas/data_for_render/experiments_datas/defense/action8_8far_1/'
+    far8action8ADM2 = './../datas/data_for_render/experiments_datas/defense/action8_8far_2/'
+    far8action8ADM3 = './../datas/data_for_render/experiments_datas/defense/action8_8far_3/'
+    # jili-4 -
+    canshu1010 = './../datas/data_for_render/experiments_datas/parameters_new/MvsM4dist_1010/'
+    canshu1050 = './../datas/data_for_render/experiments_datas/parameters_new/MvsM4dist_1050/'
+    canshu1090 = './../datas/data_for_render/experiments_datas/parameters_new/MvsM4dist_1090/'
+    canshu5010 = './../datas/data_for_render/experiments_datas/parameters_new/MvsM4dist_5010/'
+    canshu5050 = './../datas/data_for_render/experiments_datas/parameters_new/MvsM4dist_5050/'
+    canshu5090 = './../datas/data_for_render/experiments_datas/parameters_new/MvsM4dist_5090/'
+    canshu9010 = './../datas/data_for_render/experiments_datas/parameters_new/MvsM4dist_9010/'
+    canshu9050 = './../datas/data_for_render/experiments_datas/parameters_new/MvsM4dist_9050/'
+    canshu9090 = './../datas/data_for_render/experiments_datas/parameters_new/MvsM4dist_9090/'
+    # wenti-1 - dist4
+    dist1 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_1/'
+    dist2 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_2/'
+    distchongyong1 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_test_1/'
+    distchongyong2 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_test_2/'
+    distmirror1 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_mirror_1/'
+    distmirror2 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_mirror_2/'
+    distmirror3 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_mirror_3/'
+    distmirror4 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_mirror_4/'
+    distmirrorchongyong1 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_mirror_test_1/'
+    distmirrorchongyong2 = './../datas/data_for_render/experiments_datas/tests/MM4dist_1_mirror_test_2/'
+    # mirror -
+    # wenti-2 - far8
+    far1 = './../datas/data_for_render/experiments_datas/tests/MM8far_1/'
+    far2 = './../datas/data_for_render/experiments_datas/tests/MM8far_2/'
+    farmirror1 = './../datas/data_for_render/experiments_datas/tests/MM8far_mirror_1/'
+    farmirror2 = './../datas/data_for_render/experiments_datas/tests/MM8far_mirror_2/'
+    fartest1 = './../datas/data_for_render/experiments_datas/tests/MM8far_test_1/'
+    fartest2 = './../datas/data_for_render/experiments_datas/tests/MM8far_test_2/'
+    farmirrortest1 = './../datas/data_for_render/experiments_datas/tests/MM8far_mirror_test_1/'
+    farmirrortest2 = './../datas/data_for_render/experiments_datas/tests/MM8far_mirror_test_2/'
+    farmirroractA__1 = './../datas/data_for_render/experiments_datas/tests/MM8far_mirror_act12345_1/'
+    farmirroractA__2 = './../datas/data_for_render/experiments_datas/tests/MM8far_mirror_act12345_2/'
+    farmirroractA_M1 = './../datas/data_for_render/experiments_datas/tests/MM8far_mirror_act123458_1/'
+    farmirroractA_M2 = './../datas/data_for_render/experiments_datas/tests/MM8far_mirror_act123458_2/'
+    # nijing -
+    weak = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Weak_8/'
+    weak21 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Weak2_8/'
+    weak22 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Weak2_8_2/'
+    weak23 = './../datas/data_for_render/experiments_datas/parametric_clustering/MM_Weak2_8_e/'
+    weak8vs91 = './../datas/data_for_render/experiments_datas/tests/MM8vs9_1/'
+    weak8vs92 = './../datas/data_for_render/experiments_datas/tests/MM8vs9_2/'
+    weak8vs93 = './../datas/data_for_render/experiments_datas/tests/MM8vs9_3/'
+    weak8vs94 = './../datas/data_for_render/experiments_datas/tests/MM8vs9_4/'
+    weak8vs9chongyong1 = './../datas/data_for_render/experiments_datas/tests/MM8vs9_test_1/'
+    weak8vs9chongyong2 = './../datas/data_for_render/experiments_datas/tests/MM8vs9_test_2/'
+    # chongyong -
+    chongyong_origin1 = './../datas/data_for_render/experiments_datas/parameters/offline_data_to_model/8faraction7_to_8faraction7_1/'
+    chongyong_origin2 = './../datas/data_for_render/experiments_datas/parameters/offline_data_to_model/8faraction7_to_8faraction7_1/'
+    chongyong_similar1 = './../datas/data_for_render/experiments_datas/parameters/offline_data_to_model/8faraction7_to_8faraction7_1/'
+    chongyong_similar2 = './../datas/data_for_render/experiments_datas/parameters/offline_data_to_model/8faraction7_to_8faraction7_1/'
+    chongyong_similar3 = './../datas/data_for_render/experiments_datas/parameters/offline_data_to_model/8faraction7_to_8faraction7_1/'
+
+    # # jili-1
+    # path_list = [
+    #     wujiangli,
+    #     wusuiji,
+    #     jiandanstate1, jiandanstate2,
+    # ]
+    # title_list = [
+    #     'RL1', 'RL2', 'RL3',
+    #     'RL+cluster1',
+    # ]
+    # separate = [
+    #     1,1,2
+    # ]
+    # separate_title_list = [
+    #     'RL',
+    #     'RL+cluster',
+    #     'HRL',
+    # ]
+
+    # # jili-2
+    # path_list = [
+    #     clusters1, jiandanstate1, jiandanstate2,
+    #     clustersc1, clustersc2, clustersc3, clustersc4,
+    #     clusterm1, clusterm2,
+    #     clustermc1, clustermc2,
+    #     clustermcl1, clustermcl2
+    # ]
+    # title_list = [
+    #     'RL1', 'RL2', 'RL3',
+    #     'RL+cluster1', 'RL+cluster2', 'RL+cluster3', 'RL+cluster4',
+    #     'HRL1', 'HRL2',
+    #     'HRL+cluster1', 'HRL+cluster2',
+    #     'HRL+cluster+lr1', 'HRL+cluster+lr2',
+    # ]
+    # separate = [
+    #     3,4,2,2,2
+    # ]
+    # separate_title_list = [
+    #     'RL',
+    #     'RL+cluster',
+    #     'HRL',
+    #     'HRL+cluster',
+    #     'HRL+cluster+local_reward',
+    # ]
+    # colors = ['#828282', '#464867', '#3C7C3D', '#DB7012', '#9D2B2B']
+
+    # # jili-31
+    # path_list = [
+    #     xiaorong____n1, xiaorong____n2,
+    #     xiaorong1____1, xiaorong1____2,
+    #     xiaorong_2___1, xiaorong_2___2,
+    #     xiaorong12___1, xiaorong12___2,
+    #     xiaorong1_3__1, xiaorong1_3__2, xiaorong1_3__3,
+    #     xiaorong_2_4_1, xiaorong_2_4_2,
+    #     xiaorong1234_1, xiaorong5
+    # ]
+    # title_list = [
+    #     'random1', 'random2',
+    #     'An___1', 'An___2',
+    #     'A_N__1', 'A_N__2',
+    #     'AnN__1', 'AnN__2',
+    #     'An_w_1', 'An_w_2', 'An_w_3',
+    #     'A_N_W1', 'A_N_W2',
+    #     'AnNwW1', 'AnNwW2',
+    # ]
+    # separate = [
+    #     2, 2, 2, 2, 3, 2, 2
+    # ]
+    # separate_title_list = [
+    #     'random',
+    #     'n',
+    #     'nw',
+    #     'n+N',
+    #     'n+nw',
+    #     'N+NW',
+    #     'n+N+nw+NW',
+    # ]
+    # colors = ['#828282', '#464867', '#1A37AB', '#5A3797', '#3C7C3D', '#DB7012', '#9D2B2B']
+
+    # # jili-32
+    # path_list = [
+    #     far8action2A__1, far8action2A__2,
+    #     far8action6AD_1, far8action6AD_2,
+    #     # far8action8ADM1, far8action8ADM2, far8action8ADM3,
+    #     far1, far2
+    # ]
+    # title_list = [
+    #     'attack1', 'attack2',
+    #     'attack+defense1', 'attack+defense2',
+    #     # 'attack+defense+mix1', 'attack+defense+mix2', 'attack+defense+mix3',
+    #     'mix1', 'mix2',
+    # ]
+    # separate = [
+    #     2, 2, 2
+    # ]
+    # separate_title_list = [
+    #     'attack',
+    #     'attack+defense',
+    #     # 'attack+defense+mix',
+    #     'attack+defense+mix'
+    # ]
+    # colors = ['#9D2B2B', '#1A37AB', '#1F5B25']
+
+    # # mirror -
+    # path_list = [
+    #     far1, far2,
+    #     farmirror1, farmirror2,
+    #     # farmirroractA__1, farmirroractA__2,
+    #     # farmirroractA_M1, farmirroractA_M2,
+    # ]
+    # title_list = [
+    #     'origin1', 'origin2',
+    #     'mirror1', 'mirror2',
+    #     # 'mix1', 'mix2',
+    #     # 'mix1', 'mix2',
+    # ]
+    # separate = [
+    #     2, 2,
+    # ]
+    # separate_title_list = [
+    #     'origin_map',
+    #     'mirror_map',
+    #     # 'mirror2',
+    #     # 'mirror3',
+    # ]
+    # colors = ['#464867', '#9D2B2B']
+
+    # # jili-4 -
+    # path_list = [
+    #     canshu1010,
+    #     canshu1050,
+    #     canshu1090,
+    #     canshu5010,
+    #     canshu5050,
+    #     canshu5090,
+    #     canshu9010,
+    #     canshu9050,
+    #     canshu9090
+    #     # farmirroractA__1, farmirroractA__2,
+    #     # farmirroractA_M1, farmirroractA_M2,
+    # ]
+    # title_list = [
+    #     'α0.1 γ0.1',
+    #     'α0.1 γ0.5',
+    #     'α0.1 γ0.9',
+    #     'α0.5 γ0.1',
+    #     'α0.5 γ0.5',
+    #     'α0.5 γ0.9',
+    #     'α0.9 γ0.1',
+    #     'α0.9 γ0.5',
+    #     'α0.9 γ0.9',
+    #     # 'mix1', 'mix2',
+    #     # 'mix1', 'mix2',
+    # ]
+    # separate = [
+    #     1, 1, 1, 1, 1, 1, 1, 1, 1
+    # ]
+    # separate_title_list = [
+    #     'α0.1 γ0.1',
+    #     'α0.1 γ0.5',
+    #     'α0.1 γ0.9',
+    #     'α0.5 γ0.1',
+    #     'α0.5 γ0.5',
+    #     'α0.5 γ0.9',
+    #     'α0.9 γ0.1',
+    #     'α0.9 γ0.5',
+    #     'α0.9 γ0.9',
+    #     # 'mirror2',
+    #     # 'mirror3',
+    # ]
+    # colors = ['#EEB4B4', '#D6494F', '#9D2B2B', '#D9E7CD', '#9CC184', '#669D62', '#9CE4D9', '#00C5CD', '#1A37AB']
+
+    # # chongyong-4 -
+    # path_list = [
+    #     dist1, dist2,
+    #     distchongyong1, distchongyong2,
+    #     distmirror2, distmirror4,
+    #     distmirrorchongyong1, distmirrorchongyong2
+    #     # farmirroractA__1, farmirroractA__2,
+    #     # farmirroractA_M1, farmirroractA_M2,
+    # ]
+    # title_list = [
+    #     'origin1', 'origin2',
+    #     're-origin1', 're-origin2',
+    #     'mirror2', 'mirror4',
+    #     're-mirror1', 're-mirror2',
+    #     # 'mix1', 'mix2',
+    #     # 'mix1', 'mix2',
+    # ]
+    # separate = [
+    #     2, 2, 2, 2
+    # ]
+    # separate_title_list = [
+    # 'origin_training',
+    # 'origin_test',
+    # 'mirror_training',
+    # 'mirror_test',
+    #     # 'mirror2',
+    #     # 'mirror3',
+    # ]
+    # colors = ['#C02D06', '#FF6A6A', '#1F5B25', '#669D62']
+
+    # chongyong-8 -
+    path_list = [
+        far1, far2,
+        fartest1, fartest2,
+        farmirror1, farmirror2,
+        farmirrortest1, farmirrortest2
+        # farmirroractA__1, farmirroractA__2,
+        # farmirroractA_M1, farmirroractA_M2,
     ]
-    separate = [2, 2, 2, 2, 2, 2, 1,
-                # 2,
-                # 1
-                ]
+    title_list = [
+        'origin1', 'origin2',
+        're-origin1', 're-origin2',
+        'mirror2', 'mirror4',
+        're-mirror1', 're-mirror2',
+        # 'mix1', 'mix2',
+        # 'mix1', 'mix2',
+    ]
+    separate = [
+        2, 2, 2, 2
+    ]
     separate_title_list = [
-        'action1',
-        'action2',
-        'action7',
-        'action9',
-        'actionATK_mirror',
-        'actionMIX_mirror',
-        'actionALL_mirror',
-        # 'unfair_model_transfer',
-        # 'unfair_test',
+        'origin_training',
+        'origin_test',
+        'mirror_training',
+        'mirror_test',
+        # 'mirror2',
+        # 'mirror3',
     ]
+    colors = ['#C02D06', '#FF6A6A', '#1F5B25', '#669D62']
+
+
+
+    # colors = ['red', 'blue', 'green', 'orange', 'red', 'blue', 'green', 'orange', 'red']
+    # colors = ['#828282', '#464867', '#1C1C1C',
+    #           '#EEB4B4', '#FF6A6A', '#D6494F', '#C02D06', '#9D2B2B',
+    #           '#FFEBCD', '#FFDAB9', '#E8A00F', '#CD8500', '#DB7012', '#8B4500',
+    #           '#E7E5CC', '#fdf2a5', '#EFBE06',
+    #           '#D9E7CD', '#C2D6A4', '#9CC184', '#669D62', '#3C7C3D', '#1F5B25', '#1E3D14', '#192813',
+    #           '#7FFFD4', '#66CDAA', '#62959D',
+    #           '#9CE4D9', '#8EE5EE', '#00C5CD', '#34AEEE', '#1A37AB',
+    #           '#FAE6F2', '#FBCDFE', '#BF87C8', '#9B70CA', '#5A3797', '#37245F'
+    #           ]
+    # colors = ['#EEB4B4', '#D6494F', '#9D2B2B', '#D9E7CD', '#9CC184', '#669D62', '#9CE4D9', '#00C5CD', '#1A37AB']
+
+    linestyles = ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', ]
 
     # draw_manage(path_8far_mirror_1)
-    multi_draw_manage(path_list, title_list, separate, separate_title_list)
+    multi_draw_manage(path_list, title_list, separate, separate_title_list, colors, linestyles)

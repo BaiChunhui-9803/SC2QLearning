@@ -50,8 +50,8 @@ _ENEMY_UNIT_TYPE = 48
 _ENEMY_UNIT_TYPE_ARG = units.Terran.Marine
 _BOUNDARY_WIDTH = 2
 
-_MY_UNITS_NUMBER = 8
-_ENEMY_UNITS_NUMBER = 9
+_MY_UNITS_NUMBER = 4
+_ENEMY_UNITS_NUMBER = 4
 _STEP_MUL = 10
 _STEP = 250 / _STEP_MUL * _MY_UNITS_NUMBER / 4
 _MAX_INFLUENCE = 25 * _ENEMY_UNITS_NUMBER
@@ -1982,7 +1982,7 @@ def main(unused_argv):
                 # map_name="MarineMicro_TNC_1",
                 # map_name="MarineMicro_MvsM_4",
                 # map_name="MarineMicro_MvsM_8",
-                # map_name="MarineMicro_MvsM_4_dist",
+                map_name="MarineMicro_MvsM_4_dist",
                 # map_name="MarineMicro_MvsM_4_dist_mirror",
                 # map_name="MarineMicro_MvsM_8_dist",
                 # map_name="MarineMicro_MvsM_4_far",
@@ -1996,7 +1996,7 @@ def main(unused_argv):
                 # map_name="MarineMicro_MvsM_4_cross2",
                 # map_name="MarineMicro_MvsM_4_cross2_2",
                 # 不对等
-                map_name="MarineMicro_MvsM_unfair_8vs9",
+                # map_name="MarineMicro_MvsM_unfair_8vs9",
                 # 测试用图
                 # map_name="4_clu_uni_0",
                 # map_name="4_clu_uni_0_5",
@@ -2032,7 +2032,7 @@ def main(unused_argv):
             # run_loop.run_loop([agent1, agent2], env, max_frames=10, max_episodes=1000)
             agent1 = SmartAgent()
             agent2 = Agent()
-            run_loop.run_loop([agent1, agent2], env, max_episodes=1500)
+            run_loop.run_loop([agent1, agent2], env, max_episodes=500)
     except KeyboardInterrupt:
         pass
 
